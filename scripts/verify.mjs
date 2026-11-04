@@ -58,7 +58,9 @@ if(!app.includes('function parseCsvRows'))fail('native CSV parser missing');
 if(!app.includes("new DecompressionStream('gzip')"))fail('native gzip loader missing');
 if(app.includes('XLSX.read(')||html.includes('xlsx.full.min.js'))fail('external XLSX runtime dependency still present');
 if(html.includes('cdn.jsdelivr.net'))fail('external CDN dependency still present');
-if(!html.includes('app.js?v=20261104-harness2'))fail('cache-busted app asset missing');
+if(app.includes("c==='\\\\n'")||app.includes("c!=='\\\\r'"))fail('browser CSV parser contains literal backslash newline bug');
+if(!app.includes("c==='\\n'")||!app.includes("c!=='\\r'"))fail('browser CSV parser newline handling missing');
+if(!html.includes('app.js?v=20261104-dbfix3'))fail('cache-busted app asset missing');
 ok('runtime dependency and cache guards verified');
 
 if(process.exitCode)process.exit(process.exitCode);
