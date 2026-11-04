@@ -22,6 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Syntax check dashboard runtime
+        run: node --check app.js
       - name: Verify embedded database
         run: node scripts/verify.mjs
       - uses: actions/configure-pages@v5
