@@ -91,7 +91,7 @@ if(app.includes('XLSX.read(')||html.includes('xlsx.full.min.js'))fail('external 
 if(html.includes('cdn.jsdelivr.net'))fail('external CDN dependency still present');
 if(app.includes("c==='\\\\n'")||app.includes("c!=='\\\\r'"))fail('browser CSV parser contains literal backslash newline bug');
 if(!app.includes("c==='\\n'")||!app.includes("c!=='\\r'"))fail('browser CSV parser newline handling missing');
-if(!html.includes('app.js?v=20261104-master8'))fail('cache-busted app asset missing');
+if(!html.includes('app.js?v=20261104-master9'))fail('cache-busted app asset missing');
 if(!app.includes("'연락처',['전화번호','휴대폰번호','팩스번호','이메일'"))fail('contact detail group missing');
 if(!html.includes('data-sort="전화번호"'))fail('contact result column missing');
 if(!html.includes('id="shiptoPanel"'))fail('ship-to owner panel missing');

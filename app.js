@@ -553,9 +553,9 @@ async function init(){
     else{console.error(relationResult.reason);meta.relation_error=relationResult.reason?.message||'실납처 관계 DB 로드 실패';}
     $('#rawCount').textContent=fmt(meta.original_record_count);
     $('#bizCount').textContent=fmt(meta.business_count);
-    $('#sourceFile').textContent=meta.source_file;
-    $('#sourceName').textContent=meta.source_file;
-    $('#dataGuide').textContent=`기본 DB 연결 완료 · ${fmt(meta.business_count)}개 사업자 · 전화 ${fmt(meta.contact_coverage['전화번호']||0)}개`;
+    $('#sourceFile').textContent='261104 통합 마스터 DB';
+    $('#sourceName').textContent='261104 통합 마스터 DB';
+    $('#dataGuide').textContent=`통합 마스터 DB 연결 완료 · ${fmt(meta.business_count)}개 사업자 · 전화 ${fmt(meta.contact_coverage['전화번호']||0)}개`;
     $('#ruleNote').textContent=meta.derived_rule;
     renderGuide();
     setupFilters();
