@@ -56,6 +56,32 @@ else ok('phone coverage 70351 businesses');
 if(Number(manifest.web_verified_count||0)!==15)fail('unexpected web-verified contact count');
 else ok('web-verified contact count 15');
 
+const relManifest=JSON.parse(fs.readFileSync(path.join(root,'data/relations-manifest.json'),'utf8'));
+if(relManifest.chunk_count!==relManifest.chunks.length)fail('relation manifest chunk_count mismatch');
+const relParts=[];
+for(const rel of relManifest.chunks){
+  const p=path.join(root,rel);
+  if(!fs.existsSync(p)){fail('missing relation chunk '+rel);continue;}
+  relParts.push(Buffer.from(fs.readFileSync(p,'utf8').trim(),'base64'));
+}
+const relGz=Buffer.concat(relParts);
+const relSha=crypto.createHash('sha256').update(relGz).digest('hex');
+if(relSha!==relManifest.sha256)fail('relation DB sha256 mismatch');
+else ok('relation DB checksum verified');
+let relation;
+try{relation=JSON.parse(zlib.gunzipSync(relGz).toString('utf8'));}
+catch(e){fail('relation DB decompression/JSON parse failed: '+e.message);relation={h:[],r:[]};}
+if(!Array.isArray(relation.h)||!Array.isArray(relation.r))fail('relation DB structure invalid');
+if(relation.r.length!==202673)fail('expected 202673 relationship rows, got '+relation.r.length);
+else ok('relationship row count 202673');
+const relIdx=Object.fromEntries((relation.h||[]).map((h,i)=>[h,i]));
+for(const h of ['사업자번호','판매처명','실납처','실납처명','채널','채널명','사무소명','사원명'])if(relIdx[h]===undefined)fail('relation DB missing field '+h);
+const yong=(relation.r||[]).filter(r=>r[relIdx['실납처명']]==='용인세브란스병원');
+if(!yong.some(r=>r[relIdx['채널']]==='DW24'&&r[relIdx['사원명']]==='최종인'))fail('용인세브란스병원 DW24/최종인 relation missing');
+if(!yong.some(r=>r[relIdx['채널']]==='ZCSO'&&r[relIdx['사원명']]==='권봉기'))fail('용인세브란스병원 ZCSO/권봉기 relation missing');
+if(!yong.some(r=>r[relIdx['채널']]==='ZOCS'&&r[relIdx['사원명']]==='홍정표'))fail('용인세브란스병원 ZOCS/홍정표 relation missing');
+else ok('용인세브란스병원 channel-owner relation guards present');
+
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 if(!app.includes('function parseCsvRows'))fail('native CSV parser missing');
@@ -64,9 +90,15 @@ if(app.includes('XLSX.read(')||html.includes('xlsx.full.min.js'))fail('external 
 if(html.includes('cdn.jsdelivr.net'))fail('external CDN dependency still present');
 if(app.includes("c==='\\\\n'")||app.includes("c!=='\\\\r'"))fail('browser CSV parser contains literal backslash newline bug');
 if(!app.includes("c==='\\n'")||!app.includes("c!=='\\r'"))fail('browser CSV parser newline handling missing');
-if(!html.includes('app.js?v=20261104-contact4'))fail('cache-busted app asset missing');
+if(!html.includes('app.js?v=20261104-relation5'))fail('cache-busted app asset missing');
 if(!app.includes("'연락처',['전화번호','휴대폰번호','팩스번호','이메일'"))fail('contact detail group missing');
 if(!html.includes('data-sort="전화번호"'))fail('contact result column missing');
+if(!html.includes('id="shiptoPanel"'))fail('ship-to owner panel missing');
+if(!html.includes('실납처/담당'))fail('ship-to owner result column missing');
+if(!app.includes('async function fetchRelationDb'))fail('relation DB loader missing');
+if(!app.includes('function businessRelationsHtml'))fail('business relationship detail renderer missing');
+if(!app.includes('function relationSummaryForBusiness'))fail('relationship result summary missing');
+if(app.includes("{cache:'force-cache'}"))fail('stale chunk cache policy still present');
 ok('runtime dependency and cache guards verified');
 
 if(process.exitCode)process.exit(process.exitCode);
