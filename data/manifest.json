@@ -1,10 +1,12 @@
 {
-  "version": 2,
-  "source_file": "261104 코드.xlsx + BP 3종 + 주소검증 공개웹",
+  "version": 1,
+  "source_file": "261104 코드.xlsx",
   "original_record_count": 205507,
   "business_count": 77025,
-  "column_count": 32,
-  "chunk_count": 47,
+  "chunk_count": 37,
+  "compression": "gzip",
+  "encoding": "base64-chunks",
+  "sha256": "5a642f7d3ba5651c8a25367a3dec64953215b64355813cbd57855e0a63be4d40",
   "chunks": [
     "data/db-00.b64",
     "data/db-01.b64",
@@ -42,19 +44,8 @@
     "data/db-33.b64",
     "data/db-34.b64",
     "data/db-35.b64",
-    "data/db-36.b64",
-    "data/db-37.b64",
-    "data/db-38.b64",
-    "data/db-39.b64",
-    "data/db-40.b64",
-    "data/db-41.b64",
-    "data/db-42.b64",
-    "data/db-43.b64",
-    "data/db-44.b64",
-    "data/db-45.b64",
-    "data/db-46.b64"
+    "data/db-36.b64"
   ],
-  "sha256": "bab51d480aa5683386198345710be04686694c760c96749b1df8bdd84b146903",
   "guide": [
     {
       "채널": "ZZ04",
@@ -350,18 +341,5 @@
       "온/오프라인": "",
       "비고": ""
     }
-  ],
-  "contact_coverage": {
-    "전화번호": 70351,
-    "팩스번호": 31365,
-    "휴대폰번호": 37868,
-    "이메일": 64680
-  },
-  "web_verified_count": 15,
-  "contact_sources": [
-    "거래처 BP.xlsx",
-    "25.11월 BP.XLSX",
-    "260720_도매 BP.xlsx",
-    "공개 웹 주소/사업자 확인"
   ]
 }
