@@ -1,5 +1,6 @@
 const $=s=>document.querySelector(s);
 let H=[],R=[],I={},meta={},filtered=[],searchIndex=[];
+let REL=[],REL_I={},relByBiz=new Map(),relByShip=new Map(),relShips=[];
 let sortState={key:null,dir:null};
 let renderedCount=0;
 const RENDER_CHUNK=500;
@@ -17,6 +18,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const fmt=n=>Number(n||0).toLocaleString('ko-KR');
 const clean=v=>v==null?'':String(v).trim();
 const val=(r,k)=>r[I[k]]??'';
+const relVal=(r,k)=>r[REL_I[k]]??'';
 const collator=new Intl.Collator('ko-KR',{numeric:true,sensitivity:'base'});
 
 function splitMulti(v){
@@ -143,7 +145,7 @@ function parseEmbeddedCsv(csvText,manifest){
 }
 async function fetchEmbeddedDb(){
   setStatus('기본 DB 정보 확인 중','loading');
-  const manifestRes=await fetch('data/manifest.json?v=4',{cache:'no-store'});
+  const manifestRes=await fetch('data/manifest.json?v=5',{cache:'no-store'});
   if(!manifestRes.ok)throw new Error('기본 DB 매니페스트를 불러오지 못했습니다.');
   const manifest=await manifestRes.json();
 
@@ -153,7 +155,7 @@ async function fetchEmbeddedDb(){
   for(let start=0;start<paths.length;start+=batchSize){
     const batch=paths.slice(start,start+batchSize);
     const results=await Promise.all(batch.map(async path=>{
-      const res=await fetch(path+'?v=4',{cache:'force-cache'});
+      const res=await fetch(path+'?v=5',{cache:'no-store'});
       if(!res.ok)throw new Error('기본 DB 조각 로드 실패: '+path);
       return b64ToBytes(await res.text());
     }));
@@ -165,6 +167,129 @@ async function fetchEmbeddedDb(){
   const csvText=await gunzip(concatBytes(chunks));
   setStatus('기본 DB 인덱스 생성 중','loading');
   parseEmbeddedCsv(csvText,manifest);
+}
+async function fetchRelationDb(){
+  setStatus('실납처 관계 DB 정보 확인 중','loading');
+  const manifestRes=await fetch('data/relations-manifest.json?v=1',{cache:'no-store'});
+  if(!manifestRes.ok)throw new Error('실납처 관계 DB 매니페스트를 불러오지 못했습니다.');
+  const manifest=await manifestRes.json();
+  const chunks=[],paths=manifest.chunks||[],batchSize=6;
+  for(let start=0;start<paths.length;start+=batchSize){
+    const batch=paths.slice(start,start+batchSize);
+    const results=await Promise.all(batch.map(async path=>{
+      const res=await fetch(path+'?v=1',{cache:'no-store'});
+      if(!res.ok)throw new Error('실납처 관계 DB 조각 로드 실패: '+path);
+      return b64ToBytes(await res.text());
+    }));
+    chunks.push(...results);
+    setStatus(`실납처 관계 DB 로드 중 ${Math.min(start+batch.length,paths.length)}/${paths.length}`,'loading');
+  }
+  const jsonText=await gunzip(concatBytes(chunks));
+  const obj=JSON.parse(jsonText);
+  if(!Array.isArray(obj.h)||!Array.isArray(obj.r))throw new Error('실납처 관계 DB 형식이 올바르지 않습니다.');
+  REL_I=Object.fromEntries(obj.h.map((h,i)=>[h,i]));
+  REL=obj.r;
+  relByBiz=new Map(); relByShip=new Map();
+  for(const r of REL){
+    const biz=clean(relVal(r,'사업자번호'));
+    if(biz){
+      if(!relByBiz.has(biz))relByBiz.set(biz,[]);
+      relByBiz.get(biz).push(r);
+    }
+    const code=clean(relVal(r,'실납처')),name=clean(relVal(r,'실납처명'));
+    if(name){
+      const k=code+'\u0001'+name;
+      if(!relByShip.has(k))relByShip.set(k,{code,name,rows:[]});
+      relByShip.get(k).rows.push(r);
+    }
+  }
+  relShips=[...relByShip.values()];
+  meta.relation_count=REL.length;
+  meta.shipto_count=relShips.length;
+}
+function assignmentGroups(rows){
+  const map=new Map();
+  for(const r of rows){
+    const channel=clean(relVal(r,'채널')),channelName=clean(relVal(r,'채널명'));
+    const office=clean(relVal(r,'사무소명')),staff=clean(relVal(r,'사원명'));
+    const k=[channel,channelName,office,staff].join('\u0001');
+    if(!map.has(k))map.set(k,{channel,channelName,office,staff,vendors:new Set()});
+    const vendor=clean(relVal(r,'판매처명'));
+    if(vendor)map.get(k).vendors.add(vendor);
+  }
+  return [...map.values()].sort((a,b)=>collator.compare(a.channel,b.channel)||collator.compare(a.staff,b.staff));
+}
+function assignmentRowsHtml(rows){
+  return assignmentGroups(rows).map(a=>{
+    const vendors=[...a.vendors];
+    const vendorText=vendors.slice(0,3).map(esc).join(' · ')+(vendors.length>3?` 외 ${vendors.length-3}개`:'');
+    return `<div class="assign-row">
+      <div><strong>${esc(a.channel||'-')}</strong><span>${esc(a.channelName||'')}</span></div>
+      <div><b>${esc(a.staff||'-')}</b><span>${esc(a.office||'')}</span></div>
+      <div class="assign-vendors">${vendorText||'-'}</div>
+    </div>`;
+  }).join('');
+}
+function renderShiptoMatches(query){
+  const panel=$('#shiptoPanel'),body=$('#shiptoMatches'),count=$('#shiptoMatchCount');
+  if(!panel||!body)return;
+  const q=clean(query).toLowerCase();
+  if(q.length<2||!relShips.length){panel.hidden=true;body.innerHTML='';return;}
+  const all=relShips.filter(g=>g.name.toLowerCase().includes(q)||g.code.toLowerCase().includes(q));
+  if(!all.length){panel.hidden=true;body.innerHTML='';return;}
+  const matches=all.slice(0,20);
+  panel.hidden=false;
+  count.textContent=`${fmt(all.length)}개 실납처 매칭`;
+  body.innerHTML=matches.map(g=>{
+    const open=matches.length<=3?' open':'';
+    const ass=assignmentGroups(g.rows);
+    return `<details class="ship-match-card"${open}>
+      <summary><div><strong>${esc(g.name)}</strong><span>실납처 ${esc(g.code)} · ${fmt(ass.length)}개 담당 관계</span></div><span class="chev">⌄</span></summary>
+      <div class="assignment-list">${assignmentRowsHtml(g.rows)}</div>
+    </details>`;
+  }).join('');
+}
+function relationSummaryForBusiness(r){
+  const biz=clean(val(r,'사업자번호')),rels=relByBiz.get(biz)||[];
+  if(!rels.length)return '<span class="muted">관계정보 없음</span>';
+  const q=clean($('#q')?.value).toLowerCase();
+  const matched=q?rels.filter(x=>relVal(x,'실납처명').toLowerCase().includes(q)||relVal(x,'실납처').toLowerCase().includes(q)):[];
+  const use=matched.length?matched:rels;
+  const shipMap=new Map();
+  for(const x of use){
+    const k=relVal(x,'실납처')+'\u0001'+relVal(x,'실납처명');
+    if(!shipMap.has(k))shipMap.set(k,{code:relVal(x,'실납처'),name:relVal(x,'실납처명'),rows:[]});
+    shipMap.get(k).rows.push(x);
+  }
+  const ships=[...shipMap.values()];
+  if(!matched.length)return `<div class="relation-count">실납처 ${fmt(ships.length)}개</div><div class="code">업체 클릭 시 채널별 담당자 확인</div>`;
+  const g=ships[0],ass=assignmentGroups(g.rows);
+  const brief=ass.slice(0,3).map(a=>`${esc(a.channel)} · ${esc(a.staff||'-')}`).join('<br>');
+  return `<div class="name">${esc(g.name)}</div><div class="code">${brief}${ass.length>3?`<br>외 ${ass.length-3}개 관계`:''}</div>`;
+}
+function businessRelationsHtml(r){
+  const biz=clean(val(r,'사업자번호')),rels=relByBiz.get(biz)||[];
+  if(!rels.length)return '<div class="relation-empty">실납처-채널-담당자 관계정보가 없습니다.</div>';
+  const map=new Map();
+  for(const x of rels){
+    const k=relVal(x,'실납처')+'\u0001'+relVal(x,'실납처명');
+    if(!map.has(k))map.set(k,{code:relVal(x,'실납처'),name:relVal(x,'실납처명'),rows:[]});
+    map.get(k).rows.push(x);
+  }
+  const q=clean($('#q')?.value).toLowerCase();
+  const ships=[...map.values()].sort((a,b)=>{
+    const am=q&&(a.name.toLowerCase().includes(q)||a.code.toLowerCase().includes(q))?0:1;
+    const bm=q&&(b.name.toLowerCase().includes(q)||b.code.toLowerCase().includes(q))?0:1;
+    return am-bm||collator.compare(a.name,b.name);
+  });
+  return `<div class="biz-ship-list">${ships.map((g,i)=>{
+    const matched=q&&(g.name.toLowerCase().includes(q)||g.code.toLowerCase().includes(q));
+    const open=matched||ships.length<=3||i===0?' open':'';
+    return `<details class="biz-ship-block"${open}>
+      <summary><div><strong>${esc(g.name||'-')}</strong><span>실납처 ${esc(g.code||'-')} · ${fmt(assignmentGroups(g.rows).length)}개 채널/담당 관계</span></div><span class="chev">⌄</span></summary>
+      <div class="assignment-list">${assignmentRowsHtml(g.rows)}</div>
+    </details>`;
+  }).join('')}</div>`;
 }
 function renderGuide(){
   const items=Object.entries(meta.lookup||{});
@@ -296,6 +421,7 @@ function apply(){
   const out=[];
   for(let i=0;i<R.length;i++)if(matchesRow(R[i],i,selections,null,query))out.push(R[i]);
   filtered=out;
+  renderShiptoMatches(query);
   sortFiltered();
   renderKpis(filtered);
   $('#resultCount').textContent=`${fmt(filtered.length)}개 사업자`;
@@ -319,6 +445,7 @@ function rowHtml(r,n){
       <td>${splitMulti(val(r,'유형')).map(x=>`<span class="badge">${esc(x)}</span>`).join(' ')}</td>
       <td>${splitMulti(val(r,'영업방식')).map(x=>`<span class="badge ${x==='온라인'?'online':x==='오프라인'?'offline':''}">${esc(x)}</span>`).join(' ')}</td>
       <td>${multiDisplay(val(r,'사원명'))}<div class="code">${multiDisplay(val(r,'사무소명'))}</div></td>
+      <td class="relation-cell">${relationSummaryForBusiness(r)}</td>
       <td class="contact"><strong>${multiDisplay(val(r,'전화번호'))||'-'}</strong><div class="code">${multiDisplay(val(r,'휴대폰번호'))}</div></td>
       <td class="addr">${multiDisplay(val(r,'통합주소'))}</td>
     </tr>
@@ -327,7 +454,7 @@ function rowHtml(r,n){
 function renderNextChunk(){
   const tb=$('#rows');
   if(!filtered.length){
-    tb.innerHTML='<tr><td colspan="7" class="loading-cell">조회 결과가 없습니다.</td></tr>';
+    tb.innerHTML='<tr><td colspan="8" class="loading-cell">조회 결과가 없습니다.</td></tr>';
     return;
   }
   if(renderedCount>=filtered.length)return;
@@ -348,20 +475,22 @@ function info(k,v,wide=false){
 }
 function showDetail(r){
   const groups=[
-    ['기본 정보',['사업자번호','판매처','판매처명','실납처','실납처명','대표자명']],
-    ['채널 / 영업',['채널','채널명','유형','영업방식','사무소명','영업담당','사원명']],
+    ['기본 정보',['사업자번호','판매처','판매처명','대표자명']],
     ['연락처',['전화번호','휴대폰번호','팩스번호','이메일','연락처출처','연락처출처URL']],
     ['주소',['주소','상세주소','통합주소']],
     ['관리 정보',['위탁재고관리처','위탁재고관리처명','CSO업체','CSO업체명','가격그룹','기준회전일','약정회전일','예외회전일','수금할인 그룹','유효시작일']],
     ['기타',['비고','생성자','생성일']]
   ];
+  const relationHtml=businessRelationsHtml(r);
   $('#detailPanel').innerHTML=`
     <div class="detail-head">
       <div class="channel">${esc(val(r,'사업자번호'))}</div>
       <h2>${esc(splitMulti(val(r,'판매처명'))[0]||'사업자 상세')}</h2>
-      <div class="meta">${fmt(splitMulti(val(r,'판매처')).length)}개 판매처 · ${fmt(splitMulti(val(r,'채널')).length)}개 채널</div>
+      <div class="meta">${fmt(splitMulti(val(r,'판매처')).length)}개 판매처 · 실납처별 담당 관계 제공</div>
     </div>
     <div class="detail-body">
+      <div class="section-title relation-title">실납처별 · 채널별 · 담당자</div>
+      ${relationHtml}
       ${groups.map(([t,ks])=>`
         <div class="section-title">${t}</div>
         <div class="info-grid">${ks.map(k=>info(k,val(r,k),k==='통합주소'||k==='비고'||splitMulti(val(r,k)).length>2)).join('')}</div>
@@ -373,6 +502,7 @@ async function init(){
   try{
     enableControls(false);
     await fetchEmbeddedDb();
+    try{await fetchRelationDb();}catch(relErr){console.error(relErr);meta.relation_error=relErr.message;}
     $('#rawCount').textContent=fmt(meta.original_record_count);
     $('#bizCount').textContent=fmt(meta.business_count);
     $('#sourceFile').textContent=meta.source_file;
@@ -382,13 +512,13 @@ async function init(){
     renderGuide();
     setupFilters();
     enableControls(true);
-    setStatus(`${fmt(meta.business_count)}개 사업자 DB 연결 완료`,'ready');
+    setStatus(meta.relation_error?`${fmt(meta.business_count)}개 사업자 DB 연결 · 관계 DB 오류`:`${fmt(meta.business_count)}개 사업자 · ${fmt(meta.shipto_count||0)}개 실납처 관계 연결 완료`,meta.relation_error?'error':'ready');
     apply();
   }catch(e){
     console.error(e);
     setStatus('기본 DB 연결 실패','error');
     $('#dataGuide').textContent='기본 DB를 불러오지 못했습니다. 새로고침 후 다시 확인해 주세요.';
-    $('#rows').innerHTML=`<tr><td colspan="7" class="loading-cell">기본 DB 연결 실패<br><small>${esc(e.message)}</small></td></tr>`;
+    $('#rows').innerHTML=`<tr><td colspan="8" class="loading-cell">기본 DB 연결 실패<br><small>${esc(e.message)}</small></td></tr>`;
   }
 }
 
