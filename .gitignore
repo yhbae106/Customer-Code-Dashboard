@@ -1,0 +1,6 @@
+# Never commit source master data to a public repository
+*.xlsx
+*.xls
+*.csv
+*.json.gz
+data/records.*
