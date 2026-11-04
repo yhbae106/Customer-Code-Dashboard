@@ -126,7 +126,7 @@ function parseEmbeddedCsv(csvText,manifest){
   });
 
   searchIndex=R.map(r=>
-    ['사업자번호','판매처','판매처명','실납처','실납처명','채널','채널명','사원명','영업담당','대표자명','사무소명','통합주소','CSO업체명','위탁재고관리처명']
+    ['사업자번호','판매처','판매처명','실납처','실납처명','채널','채널명','사원명','영업담당','대표자명','사무소명','통합주소','CSO업체명','위탁재고관리처명','전화번호','팩스번호','휴대폰번호','이메일']
       .map(k=>val(r,k)).join(' ').toLowerCase()
   );
 
@@ -136,12 +136,14 @@ function parseEmbeddedCsv(csvText,manifest){
     business_count:R.length,
     lookup,
     guide:manifest.guide||[],
+    contact_coverage:manifest.contact_coverage||{},
+    web_verified_count:Number(manifest.web_verified_count||0),
     derived_rule:'조견표 유형/온라인 지정값을 우선 적용하고, 온라인 지정이 없는 DW 채널은 오프라인으로 분류'
   };
 }
 async function fetchEmbeddedDb(){
   setStatus('기본 DB 정보 확인 중','loading');
-  const manifestRes=await fetch('data/manifest.json?v=3',{cache:'no-store'});
+  const manifestRes=await fetch('data/manifest.json?v=4',{cache:'no-store'});
   if(!manifestRes.ok)throw new Error('기본 DB 매니페스트를 불러오지 못했습니다.');
   const manifest=await manifestRes.json();
 
@@ -151,7 +153,7 @@ async function fetchEmbeddedDb(){
   for(let start=0;start<paths.length;start+=batchSize){
     const batch=paths.slice(start,start+batchSize);
     const results=await Promise.all(batch.map(async path=>{
-      const res=await fetch(path+'?v=3',{cache:'force-cache'});
+      const res=await fetch(path+'?v=4',{cache:'force-cache'});
       if(!res.ok)throw new Error('기본 DB 조각 로드 실패: '+path);
       return b64ToBytes(await res.text());
     }));
@@ -317,6 +319,7 @@ function rowHtml(r,n){
       <td>${splitMulti(val(r,'유형')).map(x=>`<span class="badge">${esc(x)}</span>`).join(' ')}</td>
       <td>${splitMulti(val(r,'영업방식')).map(x=>`<span class="badge ${x==='온라인'?'online':x==='오프라인'?'offline':''}">${esc(x)}</span>`).join(' ')}</td>
       <td>${multiDisplay(val(r,'사원명'))}<div class="code">${multiDisplay(val(r,'사무소명'))}</div></td>
+      <td class="contact"><strong>${multiDisplay(val(r,'전화번호'))||'-'}</strong><div class="code">${multiDisplay(val(r,'휴대폰번호'))}</div></td>
       <td class="addr">${multiDisplay(val(r,'통합주소'))}</td>
     </tr>
   `;
@@ -324,7 +327,7 @@ function rowHtml(r,n){
 function renderNextChunk(){
   const tb=$('#rows');
   if(!filtered.length){
-    tb.innerHTML='<tr><td colspan="6" class="loading-cell">조회 결과가 없습니다.</td></tr>';
+    tb.innerHTML='<tr><td colspan="7" class="loading-cell">조회 결과가 없습니다.</td></tr>';
     return;
   }
   if(renderedCount>=filtered.length)return;
@@ -347,6 +350,7 @@ function showDetail(r){
   const groups=[
     ['기본 정보',['사업자번호','판매처','판매처명','실납처','실납처명','대표자명']],
     ['채널 / 영업',['채널','채널명','유형','영업방식','사무소명','영업담당','사원명']],
+    ['연락처',['전화번호','휴대폰번호','팩스번호','이메일','연락처출처','연락처출처URL']],
     ['주소',['주소','상세주소','통합주소']],
     ['관리 정보',['위탁재고관리처','위탁재고관리처명','CSO업체','CSO업체명','가격그룹','기준회전일','약정회전일','예외회전일','수금할인 그룹','유효시작일']],
     ['기타',['비고','생성자','생성일']]
@@ -373,7 +377,7 @@ async function init(){
     $('#bizCount').textContent=fmt(meta.business_count);
     $('#sourceFile').textContent=meta.source_file;
     $('#sourceName').textContent=meta.source_file;
-    $('#dataGuide').textContent=`기본 DB 연결 완료 · ${fmt(meta.business_count)}개 사업자 자동 조회`;
+    $('#dataGuide').textContent=`기본 DB 연결 완료 · ${fmt(meta.business_count)}개 사업자 · 전화 ${fmt(meta.contact_coverage['전화번호']||0)}개`;
     $('#ruleNote').textContent=meta.derived_rule;
     renderGuide();
     setupFilters();
@@ -384,7 +388,7 @@ async function init(){
     console.error(e);
     setStatus('기본 DB 연결 실패','error');
     $('#dataGuide').textContent='기본 DB를 불러오지 못했습니다. 새로고침 후 다시 확인해 주세요.';
-    $('#rows').innerHTML=`<tr><td colspan="6" class="loading-cell">기본 DB 연결 실패<br><small>${esc(e.message)}</small></td></tr>`;
+    $('#rows').innerHTML=`<tr><td colspan="7" class="loading-cell">기본 DB 연결 실패<br><small>${esc(e.message)}</small></td></tr>`;
   }
 }
 
