@@ -85,12 +85,25 @@ function modeForChannel(ch,lookup){
 function typeForChannel(ch,lookup){
   return clean(lookup[ch]?.['유형'])||'기타';
 }
+function parseCsvRows(text){
+  const rows=[];let row=[],field='',quoted=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(quoted){
+      if(c==='"'){
+        if(text[i+1]==='"'){field+='"';i++;}
+        else quoted=false;
+      }else field+=c;
+    }else if(c==='"')quoted=true;
+    else if(c===','){row.push(field);field='';}
+    else if(c==='\\n'){row.push(field);rows.push(row);row=[];field='';}
+    else if(c!=='\\r')field+=c;
+  }
+  if(field.length||row.length){row.push(field);rows.push(row);}
+  return rows;
+}
 function parseEmbeddedCsv(csvText,manifest){
-  if(!window.XLSX)throw new Error('데이터 처리 라이브러리를 불러오지 못했습니다.');
-
-  const wb=XLSX.read(csvText,{type:'string',raw:true});
-  const ws=wb.Sheets[wb.SheetNames[0]];
-  const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+  const data=parseCsvRows(csvText);
   if(data.length<2)throw new Error('기본 DB에 조회할 데이터가 없습니다.');
 
   const baseHeaders=data[0].map(clean);
@@ -128,7 +141,7 @@ function parseEmbeddedCsv(csvText,manifest){
 }
 async function fetchEmbeddedDb(){
   setStatus('기본 DB 정보 확인 중','loading');
-  const manifestRes=await fetch('data/manifest.json?v=1',{cache:'no-store'});
+  const manifestRes=await fetch('data/manifest.json?v=2',{cache:'no-store'});
   if(!manifestRes.ok)throw new Error('기본 DB 매니페스트를 불러오지 못했습니다.');
   const manifest=await manifestRes.json();
 
@@ -138,7 +151,7 @@ async function fetchEmbeddedDb(){
   for(let start=0;start<paths.length;start+=batchSize){
     const batch=paths.slice(start,start+batchSize);
     const results=await Promise.all(batch.map(async path=>{
-      const res=await fetch(path+'?v=1',{cache:'force-cache'});
+      const res=await fetch(path+'?v=2',{cache:'force-cache'});
       if(!res.ok)throw new Error('기본 DB 조각 로드 실패: '+path);
       return b64ToBytes(await res.text());
     }));
