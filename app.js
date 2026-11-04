@@ -60,6 +60,26 @@ function concatBytes(parts){
   for(const p of parts){out.set(p,offset);offset+=p.length;}
   return out;
 }
+const CHUNK_CONCURRENCY=12;
+async function fetchChunkSet(paths,version,label){
+  const chunks=new Array(paths.length);
+  let cursor=0,loaded=0;
+  async function worker(){
+    while(true){
+      const i=cursor++;
+      if(i>=paths.length)return;
+      const path=paths[i];
+      const res=await fetch(path+'?v='+encodeURIComponent(version),{cache:'force-cache'});
+      if(!res.ok)throw new Error(label+' 실패: '+path);
+      chunks[i]=b64ToBytes(await res.text());
+      loaded++;
+      if(loaded===paths.length||loaded%6===0)setStatus(`${label} ${loaded}/${paths.length}`,'loading');
+    }
+  }
+  const workers=Array.from({length:Math.min(CHUNK_CONCURRENCY,paths.length)},()=>worker());
+  await Promise.all(workers);
+  return chunks;
+}
 async function gunzip(bytes){
   if('DecompressionStream' in window){
     const ds=new DecompressionStream('gzip');
@@ -155,19 +175,9 @@ async function fetchEmbeddedDb(){
   if(!manifestRes.ok)throw new Error('기본 DB 매니페스트를 불러오지 못했습니다.');
   const manifest=await manifestRes.json();
 
-  const chunks=[];
   const paths=manifest.chunks||[];
-  const batchSize=6;
-  for(let start=0;start<paths.length;start+=batchSize){
-    const batch=paths.slice(start,start+batchSize);
-    const results=await Promise.all(batch.map(async path=>{
-      const res=await fetch(path+'?v=5',{cache:'no-store'});
-      if(!res.ok)throw new Error('기본 DB 조각 로드 실패: '+path);
-      return b64ToBytes(await res.text());
-    }));
-    chunks.push(...results);
-    setStatus(`기본 DB 로드 중 ${Math.min(start+batch.length,paths.length)}/${paths.length}`,'loading');
-  }
+  const cacheVersion=manifest.sha256||manifest.version||5;
+  const chunks=await fetchChunkSet(paths,cacheVersion,'기본 DB 로드 중');
 
   setStatus('기본 DB 압축 해제 중','loading');
   const csvText=await gunzip(concatBytes(chunks));
@@ -179,17 +189,9 @@ async function fetchRelationDb(){
   const manifestRes=await fetch('data/relations-manifest.json?v=1',{cache:'no-store'});
   if(!manifestRes.ok)throw new Error('실납처 관계 DB 매니페스트를 불러오지 못했습니다.');
   const manifest=await manifestRes.json();
-  const chunks=[],paths=manifest.chunks||[],batchSize=6;
-  for(let start=0;start<paths.length;start+=batchSize){
-    const batch=paths.slice(start,start+batchSize);
-    const results=await Promise.all(batch.map(async path=>{
-      const res=await fetch(path+'?v=1',{cache:'no-store'});
-      if(!res.ok)throw new Error('실납처 관계 DB 조각 로드 실패: '+path);
-      return b64ToBytes(await res.text());
-    }));
-    chunks.push(...results);
-    setStatus(`실납처 관계 DB 로드 중 ${Math.min(start+batch.length,paths.length)}/${paths.length}`,'loading');
-  }
+  const paths=manifest.chunks||[];
+  const cacheVersion=manifest.sha256||manifest.version||1;
+  const chunks=await fetchChunkSet(paths,cacheVersion,'실납처 관계 DB 로드 중');
   const jsonText=await gunzip(concatBytes(chunks));
   const obj=JSON.parse(jsonText);
   if(!Array.isArray(obj.h)||!Array.isArray(obj.r))throw new Error('실납처 관계 DB 형식이 올바르지 않습니다.');
@@ -210,8 +212,7 @@ async function fetchRelationDb(){
     }
   }
   relShips=[...relByShip.values()];
-  meta.relation_count=REL.length;
-  meta.shipto_count=relShips.length;
+  return {relation_count:REL.length,shipto_count:relShips.length};
 }
 function assignmentGroups(rows){
   const map=new Map();
@@ -526,8 +527,10 @@ function showDetail(r){
 async function init(){
   try{
     enableControls(false);
-    await fetchEmbeddedDb();
-    try{await fetchRelationDb();}catch(relErr){console.error(relErr);meta.relation_error=relErr.message;}
+    const [baseResult,relationResult]=await Promise.allSettled([fetchEmbeddedDb(),fetchRelationDb()]);
+    if(baseResult.status==='rejected')throw baseResult.reason;
+    if(relationResult.status==='fulfilled')Object.assign(meta,relationResult.value);
+    else{console.error(relationResult.reason);meta.relation_error=relationResult.reason?.message||'실납처 관계 DB 로드 실패';}
     $('#rawCount').textContent=fmt(meta.original_record_count);
     $('#bizCount').textContent=fmt(meta.business_count);
     $('#sourceFile').textContent=meta.source_file;
