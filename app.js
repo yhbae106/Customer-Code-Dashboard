@@ -13,6 +13,12 @@ const FILTERS=[
   {id:'officeFilter',key:'사무소명',label:'사무소 전체'},
   {id:'staffFilter',key:'사원명',label:'영업담당 전체'}
 ];
+const FIELD_FILTERS=[
+  {id:'saleCodeFilter',key:'판매처'},
+  {id:'saleNameFilter',key:'판매처명'},
+  {id:'shipCodeFilter',relationKey:'실납처'},
+  {id:'shipNameFilter',relationKey:'실납처명'}
+];
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ko-KR');
@@ -38,7 +44,7 @@ function setStatus(text,state=''){
   $('#loadStatus').textContent=text;
 }
 function enableControls(enabled){
-  ['q','clearBtn','typeFilter','modeFilter','channelFilter','officeFilter','staffFilter','resetFilters']
+  ['q','clearBtn','typeFilter','modeFilter','channelFilter','officeFilter','staffFilter','saleCodeFilter','saleNameFilter','shipCodeFilter','shipNameFilter','resetFilters']
     .forEach(id=>$('#'+id).disabled=!enabled);
 }
 function b64ToBytes(s){
@@ -252,7 +258,7 @@ function renderShiptoMatches(query){
 function relationSummaryForBusiness(r){
   const biz=clean(val(r,'사업자번호')),rels=relByBiz.get(biz)||[];
   if(!rels.length)return '<span class="muted">관계정보 없음</span>';
-  const q=clean($('#q')?.value).toLowerCase();
+  const q=clean($('#shipNameFilter')?.value||$('#shipCodeFilter')?.value||$('#q')?.value).toLowerCase();
   const matched=q?rels.filter(x=>relVal(x,'실납처명').toLowerCase().includes(q)||relVal(x,'실납처').toLowerCase().includes(q)):[];
   const use=matched.length?matched:rels;
   const shipMap=new Map();
@@ -276,7 +282,7 @@ function businessRelationsHtml(r){
     if(!map.has(k))map.set(k,{code:relVal(x,'실납처'),name:relVal(x,'실납처명'),rows:[]});
     map.get(k).rows.push(x);
   }
-  const q=clean($('#q')?.value).toLowerCase();
+  const q=clean($('#shipNameFilter')?.value||$('#shipCodeFilter')?.value||$('#q')?.value).toLowerCase();
   const ships=[...map.values()].sort((a,b)=>{
     const am=q&&(a.name.toLowerCase().includes(q)||a.code.toLowerCase().includes(q))?0:1;
     const bm=q&&(b.name.toLowerCase().includes(q)||b.code.toLowerCase().includes(q))?0:1;
@@ -334,11 +340,29 @@ function renderKpis(rows=R){
 function currentSelections(){
   return Object.fromEntries(FILTERS.map(f=>[f.id,$('#'+f.id).value]));
 }
+function currentFieldQueries(){
+  return Object.fromEntries(FIELD_FILTERS.map(f=>[f.id,clean($('#'+f.id)?.value).toLowerCase()]));
+}
 function rowHasFilterValue(r,key,target){
   return includesToken(val(r,key),target);
 }
-function matchesRow(r,index,selections,excludeId=null,query=''){
+function rowMatchesFieldQueries(r,fieldQueries){
+  const biz=clean(val(r,'사업자번호'));
+  for(const f of FIELD_FILTERS){
+    const q=fieldQueries[f.id];
+    if(!q)continue;
+    if(f.key){
+      if(!clean(val(r,f.key)).toLowerCase().includes(q))return false;
+      continue;
+    }
+    const rels=relByBiz.get(biz)||[];
+    if(!rels.some(x=>clean(relVal(x,f.relationKey)).toLowerCase().includes(q)))return false;
+  }
+  return true;
+}
+function matchesRow(r,index,selections,excludeId=null,query='',fieldQueries={}){
   if(query && !searchIndex[index].includes(query))return false;
+  if(!rowMatchesFieldQueries(r,fieldQueries))return false;
   for(const f of FILTERS){
     if(f.id===excludeId)continue;
     const selected=selections[f.id];
@@ -346,21 +370,21 @@ function matchesRow(r,index,selections,excludeId=null,query=''){
   }
   return true;
 }
-function getAvailableValues(filter,selections,query){
+function getAvailableValues(filter,selections,query,fieldQueries=currentFieldQueries()){
   const set=new Set();
   for(let i=0;i<R.length;i++){
-    if(!matchesRow(R[i],i,selections,filter.id,query))continue;
+    if(!matchesRow(R[i],i,selections,filter.id,query,fieldQueries))continue;
     for(const v of splitMulti(val(R[i],filter.key)))set.add(v);
   }
   return [...set].sort(collator.compare);
 }
-function refreshCascadingFilters(query){
+function refreshCascadingFilters(query,fieldQueries=currentFieldQueries()){
   let selections=currentSelections();
   let changed=true,guard=0;
   while(changed&&guard<6){
     changed=false;guard++;
     for(const f of FILTERS){
-      const allowed=getAvailableValues(f,selections,query);
+      const allowed=getAvailableValues(f,selections,query,fieldQueries);
       const current=selections[f.id];
       if(current&&!allowed.includes(current)){
         selections[f.id]='';
@@ -372,7 +396,7 @@ function refreshCascadingFilters(query){
   for(const f of FILTERS){
     const el=$('#'+f.id);
     const current=selections[f.id];
-    const allowed=getAvailableValues(f,selections,query);
+    const allowed=getAvailableValues(f,selections,query,fieldQueries);
     el.innerHTML=`<option value="">${f.label}</option>`;
     for(const v of allowed){
       const o=document.createElement('option');
@@ -416,12 +440,13 @@ function sortFiltered(){
 function apply(){
   if(!R.length)return;
   const query=$('#q').value.trim().toLowerCase();
-  refreshCascadingFilters(query);
+  const fieldQueries=currentFieldQueries();
+  refreshCascadingFilters(query,fieldQueries);
   const selections=currentSelections();
   const out=[];
-  for(let i=0;i<R.length;i++)if(matchesRow(R[i],i,selections,null,query))out.push(R[i]);
+  for(let i=0;i<R.length;i++)if(matchesRow(R[i],i,selections,null,query,fieldQueries))out.push(R[i]);
   filtered=out;
-  renderShiptoMatches(query);
+  renderShiptoMatches(fieldQueries.shipNameFilter||fieldQueries.shipCodeFilter||query);
   sortFiltered();
   renderKpis(filtered);
   $('#resultCount').textContent=`${fmt(filtered.length)}개 사업자`;
@@ -527,9 +552,13 @@ $('#q').addEventListener('input',()=>{
   clearTimeout(timer); timer=setTimeout(apply,180);
 });
 FILTERS.forEach(f=>$('#'+f.id).addEventListener('change',apply));
+FIELD_FILTERS.forEach(f=>$('#'+f.id).addEventListener('input',()=>{
+  clearTimeout(timer); timer=setTimeout(apply,180);
+}));
 $('#clearBtn').onclick=()=>{$('#q').value='';apply();};
 $('#resetFilters').onclick=()=>{
   FILTERS.forEach(f=>$('#'+f.id).value='');
+  FIELD_FILTERS.forEach(f=>$('#'+f.id).value='');
   $('#q').value='';
   sortState={key:null,dir:null};
   apply();
