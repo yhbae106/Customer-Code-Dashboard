@@ -45,6 +45,14 @@
     </div>
   </section>
 
+  <section class="panel shipto-panel" id="shiptoPanel" hidden>
+    <div class="panel-head">
+      <div><strong>실납처 담당 현황</strong><span id="shiptoMatchCount"></span></div>
+      <div class="view-note">실납처별 → 채널별 → 담당자 관계</div>
+    </div>
+    <div id="shiptoMatches" class="shipto-matches"></div>
+  </section>
+
   <section class="kpis" id="kpis">
     <div class="kpi accent"><div class="label">전체 레코드</div><div class="value">205,507</div><div class="hint">원본 행 기준</div></div>
     <div class="kpi"><div class="label">판매처 코드</div><div class="value">-</div><div class="hint">고유 판매처</div></div>
@@ -69,11 +77,12 @@
               <th class="sortable" data-sort="유형">유형 <span class="sort-mark">↕</span></th>
               <th class="sortable" data-sort="영업방식">영업방식 <span class="sort-mark">↕</span></th>
               <th class="sortable" data-sort="사원명">영업담당 <span class="sort-mark">↕</span></th>
+              <th>실납처/담당</th>
               <th class="sortable" data-sort="전화번호">연락처 <span class="sort-mark">↕</span></th>
               <th class="sortable" data-sort="통합주소">주소 <span class="sort-mark">↕</span></th>
             </tr>
           </thead>
-          <tbody id="rows"><tr><td colspan="7" class="loading-cell">기본 DB를 불러오고 있습니다.</td></tr></tbody>
+          <tbody id="rows"><tr><td colspan="8" class="loading-cell">기본 DB를 불러오고 있습니다.</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -98,6 +107,6 @@
   <footer>데이터 기준 <span id="sourceName">261104 코드.xlsx</span> · 기본 DB 자동 연결</footer>
 </div>
 
-<script src="app.js?v=20261104-contact4"></script>
+<script src="app.js?v=20261104-relation5"></script>
 </body>
 </html>
