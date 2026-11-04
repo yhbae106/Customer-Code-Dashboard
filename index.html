@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>판매처 통합 조회</title>
-<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="style.css?v=20261104-filter6" />
 </head>
 <body>
 <div class="shell">
@@ -41,6 +41,10 @@
       <select id="channelFilter" disabled><option value="">채널 전체</option></select>
       <select id="officeFilter" disabled><option value="">사무소 전체</option></select>
       <select id="staffFilter" disabled><option value="">영업담당 전체</option></select>
+      <input id="saleCodeFilter" class="field-filter" type="search" inputmode="search" placeholder="판매처 코드 조회" aria-label="판매처 코드 조회" disabled />
+      <input id="saleNameFilter" class="field-filter" type="search" inputmode="search" placeholder="판매처명 조회" aria-label="판매처명 조회" disabled />
+      <input id="shipCodeFilter" class="field-filter" type="search" inputmode="search" placeholder="실납처 코드 조회" aria-label="실납처 코드 조회" disabled />
+      <input id="shipNameFilter" class="field-filter" type="search" inputmode="search" placeholder="실납처명 조회" aria-label="실납처명 조회" disabled />
       <button id="resetFilters" class="ghost" disabled>필터 초기화</button>
     </div>
   </section>
@@ -107,6 +111,6 @@
   <footer>데이터 기준 <span id="sourceName">261104 코드.xlsx</span> · 기본 DB 자동 연결</footer>
 </div>
 
-<script src="app.js?v=20261104-relation5"></script>
+<script src="app.js?v=20261104-filter6"></script>
 </body>
 </html>
