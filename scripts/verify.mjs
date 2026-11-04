@@ -44,13 +44,17 @@ function parseCsvRows(text){
 const rows=parseCsvRows(csv);
 const header=rows[0]||[];
 const dataRows=rows.slice(1).filter(r=>r.some(v=>String(v).trim()!==''));
-const required=['사업자번호','판매처','판매처명','채널','채널명','사원명','주소','상세주소','대표자명'];
+const required=['사업자번호','판매처','판매처명','채널','채널명','사원명','주소','상세주소','대표자명','전화번호','팩스번호','휴대폰번호','이메일','연락처출처','연락처출처URL'];
 for(const h of required)if(!header.includes(h))fail('missing required column '+h);
-if(header.length!==26)fail('expected 26 columns, got '+header.length);
+if(header.length!==32)fail('expected 32 columns, got '+header.length);
 if(dataRows.length!==manifest.business_count)fail('expected '+manifest.business_count+' business rows, got '+dataRows.length);
 else ok('business row count '+dataRows.length);
 if(manifest.original_record_count!==205507)fail('unexpected source row count');
 else ok('source row count metadata 205507');
+if(Number(manifest.contact_coverage?.['전화번호']||0)!==70351)fail('unexpected phone coverage');
+else ok('phone coverage 70351 businesses');
+if(Number(manifest.web_verified_count||0)!==15)fail('unexpected web-verified contact count');
+else ok('web-verified contact count 15');
 
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
@@ -60,7 +64,9 @@ if(app.includes('XLSX.read(')||html.includes('xlsx.full.min.js'))fail('external 
 if(html.includes('cdn.jsdelivr.net'))fail('external CDN dependency still present');
 if(app.includes("c==='\\\\n'")||app.includes("c!=='\\\\r'"))fail('browser CSV parser contains literal backslash newline bug');
 if(!app.includes("c==='\\n'")||!app.includes("c!=='\\r'"))fail('browser CSV parser newline handling missing');
-if(!html.includes('app.js?v=20261104-dbfix3'))fail('cache-busted app asset missing');
+if(!html.includes('app.js?v=20261104-contact4'))fail('cache-busted app asset missing');
+if(!app.includes("'연락처',['전화번호','휴대폰번호','팩스번호','이메일'"))fail('contact detail group missing');
+if(!html.includes('data-sort="전화번호"'))fail('contact result column missing');
 ok('runtime dependency and cache guards verified');
 
 if(process.exitCode)process.exit(process.exitCode);
