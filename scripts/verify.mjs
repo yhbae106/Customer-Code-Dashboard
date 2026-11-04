@@ -84,13 +84,14 @@ else ok('용인세브란스병원 channel-owner relation guards present');
 
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const deploy=fs.readFileSync(path.join(root,'.github/workflows/deploy-pages.yml'),'utf8');
 if(!app.includes('function parseCsvRows'))fail('native CSV parser missing');
 if(!app.includes("new DecompressionStream('gzip')"))fail('native gzip loader missing');
 if(app.includes('XLSX.read(')||html.includes('xlsx.full.min.js'))fail('external XLSX runtime dependency still present');
 if(html.includes('cdn.jsdelivr.net'))fail('external CDN dependency still present');
 if(app.includes("c==='\\\\n'")||app.includes("c!=='\\\\r'"))fail('browser CSV parser contains literal backslash newline bug');
 if(!app.includes("c==='\\n'")||!app.includes("c!=='\\r'"))fail('browser CSV parser newline handling missing');
-if(!html.includes('app.js?v=20261104-relation5'))fail('cache-busted app asset missing');
+if(!html.includes('app.js?v=20261104-master8'))fail('cache-busted app asset missing');
 if(!app.includes("'연락처',['전화번호','휴대폰번호','팩스번호','이메일'"))fail('contact detail group missing');
 if(!html.includes('data-sort="전화번호"'))fail('contact result column missing');
 if(!html.includes('id="shiptoPanel"'))fail('ship-to owner panel missing');
@@ -98,8 +99,11 @@ if(!html.includes('실납처/담당'))fail('ship-to owner result column missing'
 if(!app.includes('async function fetchRelationDb'))fail('relation DB loader missing');
 if(!app.includes('function businessRelationsHtml'))fail('business relationship detail renderer missing');
 if(!app.includes('function relationSummaryForBusiness'))fail('relationship result summary missing');
-if(app.includes("{cache:'force-cache'}"))fail('stale chunk cache policy still present');
-ok('runtime dependency and cache guards verified');
+if(!app.includes("data/customer-master.gz"))fail('single-file customer master loader missing');
+if(!app.includes("data/relations-master.gz"))fail('single-file relation master loader missing');
+if(!app.includes("{cache:'force-cache'}"))fail('versioned master cache policy missing');
+if(!deploy.includes("data/customer-master.gz")||!deploy.includes("data/relations-master.gz"))fail('Pages master database build step missing');
+ok('runtime dependency and single-file database guards verified');
 
 if(process.exitCode)process.exit(process.exitCode);
 console.log('CUSTOMER DB HARNESS PASS');

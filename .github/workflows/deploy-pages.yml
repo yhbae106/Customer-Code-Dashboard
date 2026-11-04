@@ -26,6 +26,18 @@ jobs:
         run: node --check app.js
       - name: Verify embedded database
         run: node scripts/verify.mjs
+      - name: Build single-file Pages databases
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const build=(manifestPath,outPath)=>{
+            const manifest=JSON.parse(fs.readFileSync(manifestPath,'utf8'));
+            const parts=manifest.chunks.map(rel=>Buffer.from(fs.readFileSync(rel,'utf8').trim(),'base64'));
+            fs.writeFileSync(outPath,Buffer.concat(parts));
+          };
+          build('data/manifest.json','data/customer-master.gz');
+          build('data/relations-manifest.json','data/relations-master.gz');
+          NODE
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

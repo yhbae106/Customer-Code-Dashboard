@@ -80,6 +80,12 @@ async function fetchChunkSet(paths,version,label){
   await Promise.all(workers);
   return chunks;
 }
+async function fetchMasterGzip(path,version,label){
+  setStatus(label,'loading');
+  const res=await fetch(path+'?v='+encodeURIComponent(version),{cache:'force-cache'});
+  if(!res.ok)throw new Error(label+' 실패');
+  return new Uint8Array(await res.arrayBuffer());
+}
 async function gunzip(bytes){
   if('DecompressionStream' in window){
     const ds=new DecompressionStream('gzip');
@@ -177,10 +183,17 @@ async function fetchEmbeddedDb(){
 
   const paths=manifest.chunks||[];
   const cacheVersion=manifest.sha256||manifest.version||5;
-  const chunks=await fetchChunkSet(paths,cacheVersion,'기본 DB 로드 중');
+  let gz;
+  try{
+    gz=await fetchMasterGzip('data/customer-master.gz',cacheVersion,'통합 마스터 DB 로드 중');
+  }catch(masterErr){
+    console.warn('통합 마스터 DB를 사용할 수 없어 조각 DB로 전환합니다.',masterErr);
+    const chunks=await fetchChunkSet(paths,cacheVersion,'기본 DB 로드 중');
+    gz=concatBytes(chunks);
+  }
 
-  setStatus('기본 DB 압축 해제 중','loading');
-  const csvText=await gunzip(concatBytes(chunks));
+  setStatus('통합 마스터 DB 압축 해제 중','loading');
+  const csvText=await gunzip(gz);
   setStatus('기본 DB 인덱스 생성 중','loading');
   parseEmbeddedCsv(csvText,manifest);
 }
@@ -191,8 +204,15 @@ async function fetchRelationDb(){
   const manifest=await manifestRes.json();
   const paths=manifest.chunks||[];
   const cacheVersion=manifest.sha256||manifest.version||1;
-  const chunks=await fetchChunkSet(paths,cacheVersion,'실납처 관계 DB 로드 중');
-  const jsonText=await gunzip(concatBytes(chunks));
+  let gz;
+  try{
+    gz=await fetchMasterGzip('data/relations-master.gz',cacheVersion,'실납처 관계 DB 로드 중');
+  }catch(masterErr){
+    console.warn('통합 관계 DB를 사용할 수 없어 조각 DB로 전환합니다.',masterErr);
+    const chunks=await fetchChunkSet(paths,cacheVersion,'실납처 관계 DB 로드 중');
+    gz=concatBytes(chunks);
+  }
+  const jsonText=await gunzip(gz);
   const obj=JSON.parse(jsonText);
   if(!Array.isArray(obj.h)||!Array.isArray(obj.r))throw new Error('실납처 관계 DB 형식이 올바르지 않습니다.');
   REL_I=Object.fromEntries(obj.h.map((h,i)=>[h,i]));
