@@ -96,8 +96,8 @@ function parseCsvRows(text){
       }else field+=c;
     }else if(c==='"')quoted=true;
     else if(c===','){row.push(field);field='';}
-    else if(c==='\\n'){row.push(field);rows.push(row);row=[];field='';}
-    else if(c!=='\\r')field+=c;
+    else if(c==='\n'){row.push(field);rows.push(row);row=[];field='';}
+    else if(c!=='\r')field+=c;
   }
   if(field.length||row.length){row.push(field);rows.push(row);}
   return rows;
@@ -141,7 +141,7 @@ function parseEmbeddedCsv(csvText,manifest){
 }
 async function fetchEmbeddedDb(){
   setStatus('기본 DB 정보 확인 중','loading');
-  const manifestRes=await fetch('data/manifest.json?v=2',{cache:'no-store'});
+  const manifestRes=await fetch('data/manifest.json?v=3',{cache:'no-store'});
   if(!manifestRes.ok)throw new Error('기본 DB 매니페스트를 불러오지 못했습니다.');
   const manifest=await manifestRes.json();
 
@@ -151,7 +151,7 @@ async function fetchEmbeddedDb(){
   for(let start=0;start<paths.length;start+=batchSize){
     const batch=paths.slice(start,start+batchSize);
     const results=await Promise.all(batch.map(async path=>{
-      const res=await fetch(path+'?v=2',{cache:'force-cache'});
+      const res=await fetch(path+'?v=3',{cache:'force-cache'});
       if(!res.ok)throw new Error('기본 DB 조각 로드 실패: '+path);
       return b64ToBytes(await res.text());
     }));
