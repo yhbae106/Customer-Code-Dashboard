@@ -12,7 +12,7 @@
     <div>
       <div class="eyebrow">SALES ACCOUNT MASTER</div>
       <h1>판매처 통합 조회</h1>
-      <p>사업자번호 · 판매처 코드 · 판매처명 · 채널 · 대표자 · 영업담당 · 주소를 한 번에 조회</p>
+      <p>사업자번호 · 판매처 · 채널 · 영업담당 · 전화 · 팩스 · 이메일 · 주소를 한 번에 조회</p>
     </div>
     <div class="status loading"><span class="dot"></span><span id="loadStatus">기본 DB 연결 중</span></div>
   </header>
@@ -20,7 +20,7 @@
   <section class="panel data-panel">
     <div>
       <strong>기본 데이터 자동 연결</strong>
-      <span id="dataGuide">261104 코드.xlsx 기준 데이터를 불러오고 있습니다.</span>
+      <span id="dataGuide">261104 코드.xlsx + BP 연락처 데이터를 불러오고 있습니다.</span>
     </div>
     <div class="data-meta">
       <span>원본 <b id="rawCount">205,507</b>건</span>
@@ -32,7 +32,7 @@
   <section class="hero-search">
     <div class="search-wrap">
       <span class="search-icon">⌕</span>
-      <input id="q" autocomplete="off" placeholder="사업자번호, 판매처 코드, 판매처명, 대표자명, 영업담당, 주소 검색" disabled />
+      <input id="q" autocomplete="off" placeholder="사업자번호, 판매처명, 대표자, 영업담당, 전화번호, 팩스, 이메일, 주소 검색" disabled />
       <button id="clearBtn" aria-label="검색 초기화" disabled>×</button>
     </div>
     <div class="quick-filters">
@@ -69,10 +69,11 @@
               <th class="sortable" data-sort="유형">유형 <span class="sort-mark">↕</span></th>
               <th class="sortable" data-sort="영업방식">영업방식 <span class="sort-mark">↕</span></th>
               <th class="sortable" data-sort="사원명">영업담당 <span class="sort-mark">↕</span></th>
+              <th class="sortable" data-sort="전화번호">연락처 <span class="sort-mark">↕</span></th>
               <th class="sortable" data-sort="통합주소">주소 <span class="sort-mark">↕</span></th>
             </tr>
           </thead>
-          <tbody id="rows"><tr><td colspan="6" class="loading-cell">기본 DB를 불러오고 있습니다.</td></tr></tbody>
+          <tbody id="rows"><tr><td colspan="7" class="loading-cell">기본 DB를 불러오고 있습니다.</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -97,6 +98,6 @@
   <footer>데이터 기준 <span id="sourceName">261104 코드.xlsx</span> · 기본 DB 자동 연결</footer>
 </div>
 
-<script src="app.js?v=20261104-dbfix3"></script>
+<script src="app.js?v=20261104-contact4"></script>
 </body>
 </html>
