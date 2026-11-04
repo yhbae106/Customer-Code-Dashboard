@@ -44,25 +44,35 @@
   </section>
 
   <section class="kpis" id="kpis">
-    <div class="kpi accent"><div class="label">전체 레코드</div><div class="value">-</div><div class="hint">데이터 로드 후 표시</div></div>
+    <div class="kpi accent"><div class="label">전체 레코드</div><div class="value">-</div><div class="hint">원본 행 기준</div></div>
     <div class="kpi"><div class="label">판매처 코드</div><div class="value">-</div><div class="hint">고유 판매처</div></div>
     <div class="kpi"><div class="label">사업자번호</div><div class="value">-</div><div class="hint">고유 사업자</div></div>
-    <div class="kpi"><div class="label">간납</div><div class="value">-</div><div class="hint">조견표 유형</div></div>
-    <div class="kpi"><div class="label">종합도매</div><div class="value">-</div><div class="hint">조견표 유형</div></div>
-    <div class="kpi"><div class="label">온라인</div><div class="value">-</div><div class="hint">조견표 기준</div></div>
+    <div class="kpi"><div class="label">간납</div><div class="value">-</div><div class="hint">고유 사업자 기준</div></div>
+    <div class="kpi"><div class="label">종합도매</div><div class="value">-</div><div class="hint">고유 사업자 기준</div></div>
+    <div class="kpi"><div class="label">온라인</div><div class="value">-</div><div class="hint">고유 사업자 기준</div></div>
   </section>
 
   <section class="workspace">
     <div class="panel results-panel">
       <div class="panel-head">
         <div><strong>조회 결과</strong><span id="resultCount">0건</span></div>
-        <div class="view-note">최대 300건 표시 · 검색어/필터를 좁히면 더 정확합니다</div>
+        <div class="view-note">전체 결과 스크롤 조회 · 헤더 클릭으로 정렬</div>
       </div>
-      <div class="table-wrap">
+      <div class="table-wrap" id="tableWrap">
         <table>
-          <thead><tr><th>판매처</th><th>채널</th><th>유형</th><th>영업방식</th><th>영업담당</th><th>주소</th></tr></thead>
+          <thead>
+            <tr>
+              <th class="sortable" data-sort="판매처명">판매처 <span class="sort-mark">↕</span></th>
+              <th class="sortable" data-sort="채널">채널 <span class="sort-mark">↕</span></th>
+              <th class="sortable" data-sort="유형">유형 <span class="sort-mark">↕</span></th>
+              <th class="sortable" data-sort="영업방식">영업방식 <span class="sort-mark">↕</span></th>
+              <th class="sortable" data-sort="사원명">영업담당 <span class="sort-mark">↕</span></th>
+              <th class="sortable" data-sort="통합주소">주소 <span class="sort-mark">↕</span></th>
+            </tr>
+          </thead>
           <tbody id="rows"><tr><td colspan="6" style="text-align:center;padding:44px;color:#8a95a6">기본 데이터를 확인하고 있습니다.</td></tr></tbody>
         </table>
+        <div id="loadMoreSentinel" class="load-sentinel"></div>
       </div>
     </div>
 
