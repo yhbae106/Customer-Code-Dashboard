@@ -14,29 +14,78 @@
       <h1>판매처 통합 조회</h1>
       <p>사업자번호 · 판매처 코드 · 판매처명 · 채널 · 대표자 · 영업담당 · 주소를 한 번에 조회</p>
     </div>
-    <div class="status"><span class="dot"></span><span id="loadStatus">엑셀 파일을 선택하세요</span></div>
+    <div class="status"><span class="dot"></span><span id="loadStatus">기본 데이터 확인 중</span></div>
   </header>
+
   <section class="panel upload-panel">
-    <div class="upload-copy"><strong>원본 엑셀 불러오기</strong><span>파일은 서버로 전송하지 않고 현재 브라우저 안에서만 처리됩니다.</span></div>
-    <label class="file-btn">엑셀 선택<input id="fileInput" type="file" accept=".xlsx,.xls" hidden></label>
-    <span id="fileName" class="file-name">선택된 파일 없음</span>
+    <div class="upload-copy">
+      <strong>기본 데이터</strong>
+      <span id="dataGuide">최초 1회 엑셀을 등록하면 이 브라우저에 저장되어 다음 접속부터 자동으로 불러옵니다.</span>
+    </div>
+    <label class="file-btn">데이터 등록/교체<input id="fileInput" type="file" accept=".xlsx,.xls" hidden></label>
+    <button id="clearStored" class="ghost" type="button">저장 데이터 삭제</button>
+    <span id="fileName" class="file-name">기본 데이터 없음</span>
   </section>
+
   <section class="hero-search">
-    <div class="search-wrap"><span class="search-icon">⌕</span><input id="q" autocomplete="off" placeholder="사업자번호, 판매처 코드, 판매처명, 대표자명, 영업담당, 주소 검색" disabled /><button id="clearBtn" aria-label="검색 초기화" disabled>×</button></div>
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input id="q" autocomplete="off" placeholder="사업자번호, 판매처 코드, 판매처명, 대표자명, 영업담당, 주소 검색" disabled />
+      <button id="clearBtn" aria-label="검색 초기화" disabled>×</button>
+    </div>
     <div class="quick-filters">
-      <select id="typeFilter" disabled><option value="">유형 전체</option></select><select id="modeFilter" disabled><option value="">온라인/오프라인 전체</option></select><select id="channelFilter" disabled><option value="">채널 전체</option></select><select id="officeFilter" disabled><option value="">사무소 전체</option></select><select id="staffFilter" disabled><option value="">영업담당 전체</option></select><button id="resetFilters" class="ghost" disabled>필터 초기화</button>
+      <select id="typeFilter" disabled><option value="">유형 전체</option></select>
+      <select id="modeFilter" disabled><option value="">온라인/오프라인 전체</option></select>
+      <select id="channelFilter" disabled><option value="">채널 전체</option></select>
+      <select id="officeFilter" disabled><option value="">사무소 전체</option></select>
+      <select id="staffFilter" disabled><option value="">영업담당 전체</option></select>
+      <button id="resetFilters" class="ghost" disabled>필터 초기화</button>
     </div>
   </section>
+
   <section class="kpis" id="kpis">
-    <div class="kpi accent"><div class="label">전체 레코드</div><div class="value">-</div><div class="hint">엑셀 로드 후 표시</div></div><div class="kpi"><div class="label">판매처 코드</div><div class="value">-</div><div class="hint">고유 판매처</div></div><div class="kpi"><div class="label">사업자번호</div><div class="value">-</div><div class="hint">고유 사업자</div></div><div class="kpi"><div class="label">간납</div><div class="value">-</div><div class="hint">조견표 유형</div></div><div class="kpi"><div class="label">종합도매</div><div class="value">-</div><div class="hint">조견표 유형</div></div><div class="kpi"><div class="label">온라인</div><div class="value">-</div><div class="hint">조견표 기준</div></div>
+    <div class="kpi accent"><div class="label">전체 레코드</div><div class="value">-</div><div class="hint">데이터 로드 후 표시</div></div>
+    <div class="kpi"><div class="label">판매처 코드</div><div class="value">-</div><div class="hint">고유 판매처</div></div>
+    <div class="kpi"><div class="label">사업자번호</div><div class="value">-</div><div class="hint">고유 사업자</div></div>
+    <div class="kpi"><div class="label">간납</div><div class="value">-</div><div class="hint">조견표 유형</div></div>
+    <div class="kpi"><div class="label">종합도매</div><div class="value">-</div><div class="hint">조견표 유형</div></div>
+    <div class="kpi"><div class="label">온라인</div><div class="value">-</div><div class="hint">조견표 기준</div></div>
   </section>
+
   <section class="workspace">
-    <div class="panel results-panel"><div class="panel-head"><div><strong>조회 결과</strong><span id="resultCount">0건</span></div><div class="view-note">최대 300건 표시 · 검색어/필터를 좁히면 더 정확합니다</div></div><div class="table-wrap"><table><thead><tr><th>판매처</th><th>채널</th><th>유형</th><th>영업방식</th><th>영업담당</th><th>주소</th></tr></thead><tbody id="rows"><tr><td colspan="6" style="text-align:center;padding:44px;color:#8a95a6">엑셀 파일을 먼저 선택하세요.</td></tr></tbody></table></div></div>
-    <aside class="panel detail-panel" id="detailPanel"><div class="empty-detail"><div class="empty-icon">◎</div><strong>거래처를 선택하세요</strong><p>조회 결과의 행을 클릭하면 판매처·실납처·채널·담당자·주소·회전일·CSO/위탁재고 정보를 확인할 수 있습니다.</p></div></aside>
+    <div class="panel results-panel">
+      <div class="panel-head">
+        <div><strong>조회 결과</strong><span id="resultCount">0건</span></div>
+        <div class="view-note">최대 300건 표시 · 검색어/필터를 좁히면 더 정확합니다</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>판매처</th><th>채널</th><th>유형</th><th>영업방식</th><th>영업담당</th><th>주소</th></tr></thead>
+          <tbody id="rows"><tr><td colspan="6" style="text-align:center;padding:44px;color:#8a95a6">기본 데이터를 확인하고 있습니다.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <aside class="panel detail-panel" id="detailPanel">
+      <div class="empty-detail">
+        <div class="empty-icon">◎</div>
+        <strong>거래처를 선택하세요</strong>
+        <p>조회 결과의 행을 클릭하면 판매처·실납처·채널·담당자·주소·회전일·CSO/위탁재고 정보를 확인할 수 있습니다.</p>
+      </div>
+    </aside>
   </section>
-  <section class="panel guide-panel"><div class="panel-head"><div><strong>채널 조견표</strong><span>분류 기준</span></div><div class="view-note" id="ruleNote">엑셀의 조견표 시트를 기준으로 자동 분류</div></div><div id="guide" class="guide-grid"></div></section>
-  <footer>데이터 기준 <span id="sourceName">선택한 로컬 엑셀</span> · 내부 업무용 조회 화면 · 원본 데이터는 GitHub에 저장하지 않음</footer>
+
+  <section class="panel guide-panel">
+    <div class="panel-head">
+      <div><strong>채널 조견표</strong><span>분류 기준</span></div>
+      <div class="view-note" id="ruleNote">엑셀의 조견표 시트를 기준으로 자동 분류</div>
+    </div>
+    <div id="guide" class="guide-grid"></div>
+  </section>
+
+  <footer>데이터 기준 <span id="sourceName">브라우저 기본 데이터</span> · 내부 업무용 조회 화면 · 원본 데이터는 GitHub 저장소에 저장하지 않음</footer>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="app.js"></script>
 </body>
