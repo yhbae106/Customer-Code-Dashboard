@@ -1,9 +1,21 @@
 const $=s=>document.querySelector(s);
-let H=[],R=[],I={},meta={},filtered=[];
+let H=[],R=[],I={},meta={},filtered=[],searchIndex=[];
+let sortState={key:null,dir:null};
+let renderedCount=0;
+const RENDER_CHUNK=500;
+
 const DB_NAME='CustomerCodeDashboardDB';
 const DB_VERSION=1;
 const STORE='master';
 const STORE_KEY='current';
+
+const FILTERS=[
+  {id:'typeFilter',key:'유형',label:'유형 전체'},
+  {id:'modeFilter',key:'영업방식',label:'온라인/오프라인 전체'},
+  {id:'channelFilter',key:'채널',label:'채널 전체'},
+  {id:'officeFilter',key:'사무소명',label:'사무소 전체'},
+  {id:'staffFilter',key:'사원명',label:'영업담당 전체'}
+];
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ko-KR');
@@ -11,22 +23,12 @@ const clean=v=>v==null?'':String(v).trim();
 const key=v=>clean(v);
 const val=(r,k)=>r[I[k]]??'';
 const uniq=a=>[...new Set(a.filter(v=>clean(v)!=='') )];
+const collator=new Intl.Collator('ko-KR',{numeric:true,sensitivity:'base'});
 
 function setStatus(text,state=''){
   const el=$('.status');
   el.className='status '+state;
   $('#loadStatus').textContent=text;
-}
-
-function fillSelect(el,items,labeler=v=>v){
-  const first=el.options[0]?.outerHTML||'<option value="">전체</option>';
-  el.innerHTML=first;
-  items.filter(Boolean).forEach(v=>{
-    const o=document.createElement('option');
-    o.value=v;
-    o.textContent=labeler(v);
-    el.appendChild(o);
-  });
 }
 
 function serialToDate(v){
@@ -71,11 +73,7 @@ async function saveMaster(name,arrayBuffer){
   const db=await openDb();
   return new Promise((resolve,reject)=>{
     const tx=db.transaction(STORE,'readwrite');
-    tx.objectStore(STORE).put({
-      name,
-      data:arrayBuffer,
-      savedAt:new Date().toISOString()
-    },STORE_KEY);
+    tx.objectStore(STORE).put({name,data:arrayBuffer,savedAt:new Date().toISOString()},STORE_KEY);
     tx.oncomplete=()=>{db.close();resolve();};
     tx.onerror=()=>{db.close();reject(tx.error);};
   });
@@ -142,36 +140,45 @@ function parseWorkbook(arrayBuffer,fileName){
     return [...base,typeFor(g),modeFor(ch,g),address];
   });
 
-  const typeCounts={},modeCounts={};
-  R.forEach(r=>{
-    const t=val(r,'유형'),m=val(r,'영업방식');
-    typeCounts[t]=(typeCounts[t]||0)+1;
-    modeCounts[m]=(modeCounts[m]||0)+1;
-  });
+  searchIndex=R.map(r=>
+    ['사업자번호','판매처','판매처명','실납처','실납처명','채널','채널명','사원명','대표자명','사무소명','통합주소','CSO업체명','위탁재고관리처명']
+      .map(k=>val(r,k)).join(' ').toLowerCase()
+  );
 
   meta={
     source_file:fileName,
-    record_count:R.length,
-    unique_sales:new Set(R.map(r=>key(val(r,'판매처'))).filter(Boolean)).size,
-    unique_business_numbers:new Set(R.map(r=>key(val(r,'사업자번호'))).filter(Boolean)).size,
-    type_counts:typeCounts,
-    mode_counts:modeCounts,
     lookup,
     derived_rule:'조견표 유형/온라인 지정값을 우선 적용하고, 온라인 지정이 없는 DW 채널은 오프라인으로 분류'
   };
 }
 
-function renderKpis(){
-  const t=meta.type_counts||{},m=meta.mode_counts||{};
+function countUnique(rows,keyName,predicate=()=>true){
+  const set=new Set();
+  for(const r of rows){
+    if(!predicate(r))continue;
+    const v=clean(val(r,keyName));
+    if(v)set.add(v);
+  }
+  return set.size;
+}
+
+function renderKpis(rows=R){
   const cards=[
-    ['전체 레코드',meta.record_count,'원본 행 기준','accent'],
-    ['판매처 코드',meta.unique_sales,'고유 판매처',''],
-    ['사업자번호',meta.unique_business_numbers,'고유 사업자',''],
-    ['간납',t['간납']||0,'조견표 유형',''],
-    ['종합도매',t['종합']||0,'조견표 유형',''],
-    ['온라인',m['온라인']||0,'조견표 기준','']
+    ['전체 레코드',rows.length,'현재 조회 행','accent'],
+    ['판매처 코드',countUnique(rows,'판매처'),'고유 판매처',''],
+    ['사업자번호',countUnique(rows,'사업자번호'),'고유 사업자',''],
+    ['간납',countUnique(rows,'사업자번호',r=>val(r,'유형')==='간납'),'고유 사업자 기준',''],
+    ['종합도매',countUnique(rows,'사업자번호',r=>String(val(r,'유형')).includes('종합')),'고유 사업자 기준',''],
+    ['온라인',countUnique(rows,'사업자번호',r=>val(r,'영업방식')==='온라인'),'고유 사업자 기준','']
   ];
-  $('#kpis').innerHTML=cards.map(c=>`<div class="kpi ${c[3]}"><div class="label">${c[0]}</div><div class="value">${fmt(c[1])}</div><div class="hint">${c[2]}</div></div>`).join('');
+
+  $('#kpis').innerHTML=cards.map(c=>`
+    <div class="kpi ${c[3]}">
+      <div class="label">${c[0]}</div>
+      <div class="value">${fmt(c[1])}</div>
+      <div class="hint">${c[2]}</div>
+    </div>
+  `).join('');
 }
 
 function renderGuide(){
@@ -185,47 +192,112 @@ function renderGuide(){
   `).join('');
 }
 
-function rowText(r){
-  return ['사업자번호','판매처','판매처명','실납처','실납처명','채널','채널명','사원명','대표자명','사무소명','통합주소','CSO업체명','위탁재고관리처명']
-    .map(k=>val(r,k)).join(' ').toLowerCase();
+function currentSelections(){
+  return Object.fromEntries(FILTERS.map(f=>[f.id,$('#'+f.id).value]));
+}
+
+function matchesRow(r,index,selections,excludeId=null,query=''){
+  if(query && !searchIndex[index].includes(query))return false;
+  for(const f of FILTERS){
+    if(f.id===excludeId)continue;
+    const selected=selections[f.id];
+    if(selected && val(r,f.key)!==selected)return false;
+  }
+  return true;
+}
+
+function getAvailableValues(filter,selections,query){
+  const set=new Set();
+  for(let i=0;i<R.length;i++){
+    if(matchesRow(R[i],i,selections,filter.id,query)){
+      const v=clean(val(R[i],filter.key));
+      if(v)set.add(v);
+    }
+  }
+  return [...set].sort(collator.compare);
+}
+
+function refreshCascadingFilters(query){
+  let selections=currentSelections();
+  let changed=true;
+  let guard=0;
+
+  while(changed && guard<6){
+    changed=false;
+    guard++;
+    for(const f of FILTERS){
+      const allowed=getAvailableValues(f,selections,query);
+      const current=selections[f.id];
+      if(current && !allowed.includes(current)){
+        selections[f.id]='';
+        $('#'+f.id).value='';
+        changed=true;
+      }
+    }
+  }
+
+  for(const f of FILTERS){
+    const el=$('#'+f.id);
+    const current=selections[f.id];
+    const allowed=getAvailableValues(f,selections,query);
+    el.innerHTML=`<option value="">${f.label}</option>`;
+    for(const v of allowed){
+      const o=document.createElement('option');
+      o.value=v;
+      o.textContent=f.id==='channelFilter'
+        ? `${v} · ${meta.lookup?.[v]?.['채널명']||''}`
+        : v;
+      el.appendChild(o);
+    }
+    if(current && allowed.includes(current))el.value=current;
+  }
+}
+
+function updateSortMarks(){
+  document.querySelectorAll('th.sortable').forEach(th=>{
+    const mark=th.querySelector('.sort-mark');
+    if(th.dataset.sort!==sortState.key){
+      th.classList.remove('sorted');
+      mark.textContent='↕';
+    }else{
+      th.classList.add('sorted');
+      mark.textContent=sortState.dir==='asc'?'▲':'▼';
+    }
+  });
+}
+
+function sortFiltered(){
+  if(!sortState.key || !sortState.dir)return;
+  const dir=sortState.dir==='asc'?1:-1;
+  const k=sortState.key;
+  filtered.sort((a,b)=>collator.compare(clean(val(a,k)),clean(val(b,k)))*dir);
 }
 
 function apply(){
   if(!R.length)return;
 
-  const q=$('#q').value.trim().toLowerCase();
-  const type=$('#typeFilter').value;
-  const mode=$('#modeFilter').value;
-  const ch=$('#channelFilter').value;
-  const office=$('#officeFilter').value;
-  const staff=$('#staffFilter').value;
+  const query=$('#q').value.trim().toLowerCase();
+  refreshCascadingFilters(query);
+  const selections=currentSelections();
 
-  let total=0,out=[];
-  for(const r of R){
-    if(type&&val(r,'유형')!==type)continue;
-    if(mode&&val(r,'영업방식')!==mode)continue;
-    if(ch&&val(r,'채널')!==ch)continue;
-    if(office&&val(r,'사무소명')!==office)continue;
-    if(staff&&val(r,'사원명')!==staff)continue;
-    if(q&&!rowText(r).includes(q))continue;
-    total++;
-    if(out.length<300)out.push(r);
+  const out=[];
+  for(let i=0;i<R.length;i++){
+    if(matchesRow(R[i],i,selections,null,query))out.push(R[i]);
   }
 
   filtered=out;
-  $('#resultCount').textContent=`${fmt(total)}건${total>300?' · 300건 표시':''}`;
-  renderRows();
+  sortFiltered();
+  renderKpis(filtered);
+  $('#resultCount').textContent=`${fmt(filtered.length)}건`;
+  renderedCount=0;
+  $('#rows').innerHTML='';
+  $('#tableWrap').scrollTop=0;
+  renderNextChunk();
+  updateSortMarks();
 }
 
-function renderRows(){
-  const tb=$('#rows');
-
-  if(!filtered.length){
-    tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:44px;color:#8a95a6">조회 결과가 없습니다.</td></tr>';
-    return;
-  }
-
-  tb.innerHTML=filtered.map((r,n)=>`
+function rowHtml(r,n){
+  return `
     <tr data-i="${n}">
       <td><div class="name">${esc(val(r,'판매처명'))}</div><div class="code">${esc(val(r,'판매처'))} · 사업자 ${esc(val(r,'사업자번호'))}</div></td>
       <td><strong>${esc(val(r,'채널'))}</strong><div class="code">${esc(val(r,'채널명'))}</div></td>
@@ -234,9 +306,30 @@ function renderRows(){
       <td>${esc(val(r,'사원명'))}<div class="code">${esc(val(r,'사무소명'))}</div></td>
       <td class="addr">${esc(val(r,'통합주소'))}</td>
     </tr>
-  `).join('');
+  `;
+}
 
-  tb.querySelectorAll('tr[data-i]').forEach(tr=>tr.onclick=()=>showDetail(filtered[+tr.dataset.i]));
+function renderNextChunk(){
+  const tb=$('#rows');
+
+  if(!filtered.length){
+    tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:44px;color:#8a95a6">조회 결과가 없습니다.</td></tr>';
+    return;
+  }
+
+  if(renderedCount>=filtered.length)return;
+
+  const end=Math.min(renderedCount+RENDER_CHUNK,filtered.length);
+  let html='';
+  for(let i=renderedCount;i<end;i++)html+=rowHtml(filtered[i],i);
+  tb.insertAdjacentHTML('beforeend',html);
+
+  for(let i=renderedCount;i<end;i++){
+    const tr=tb.querySelector(`tr[data-i="${i}"]`);
+    if(tr)tr.onclick=()=>showDetail(filtered[i]);
+  }
+
+  renderedCount=end;
 }
 
 function info(k,v,wide=false){
@@ -273,15 +366,23 @@ function enableControls(enabled){
 }
 
 function setupFilters(){
-  fillSelect($('#typeFilter'),uniq(R.map(r=>val(r,'유형'))).sort());
-  fillSelect($('#modeFilter'),uniq(R.map(r=>val(r,'영업방식'))).sort());
-  fillSelect($('#channelFilter'),uniq(R.map(r=>val(r,'채널'))).sort(),v=>`${v} · ${meta.lookup?.[v]?.['채널명']||''}`);
-  fillSelect($('#officeFilter'),uniq(R.map(r=>val(r,'사무소명'))).sort());
-  fillSelect($('#staffFilter'),uniq(R.map(r=>val(r,'사원명'))).sort());
+  const selections=Object.fromEntries(FILTERS.map(f=>[f.id,'']));
+  for(const f of FILTERS){
+    const el=$('#'+f.id);
+    const values=getAvailableValues(f,selections,'');
+    el.innerHTML=`<option value="">${f.label}</option>`;
+    for(const v of values){
+      const o=document.createElement('option');
+      o.value=v;
+      o.textContent=f.id==='channelFilter'
+        ? `${v} · ${meta.lookup?.[v]?.['채널명']||''}`
+        : v;
+      el.appendChild(o);
+    }
+  }
 }
 
 function finishLoad(fileName,storedAt){
-  renderKpis();
   renderGuide();
   $('#ruleNote').textContent=meta.derived_rule;
   $('#sourceName').textContent=meta.source_file;
@@ -348,8 +449,7 @@ $('#q').addEventListener('input',()=>{
   timer=setTimeout(apply,180);
 });
 
-['typeFilter','modeFilter','channelFilter','officeFilter','staffFilter']
-  .forEach(id=>$('#'+id).addEventListener('change',apply));
+FILTERS.forEach(f=>$('#'+f.id).addEventListener('change',apply));
 
 $('#clearBtn').onclick=()=>{
   $('#q').value='';
@@ -357,10 +457,34 @@ $('#clearBtn').onclick=()=>{
 };
 
 $('#resetFilters').onclick=()=>{
-  ['typeFilter','modeFilter','channelFilter','officeFilter','staffFilter'].forEach(id=>$('#'+id).value='');
+  FILTERS.forEach(f=>$('#'+f.id).value='');
   $('#q').value='';
+  sortState={key:null,dir:null};
   apply();
 };
+
+document.querySelectorAll('th.sortable').forEach(th=>{
+  th.addEventListener('click',()=>{
+    const k=th.dataset.sort;
+    if(sortState.key!==k){
+      sortState={key:k,dir:'asc'};
+    }else if(sortState.dir==='asc'){
+      sortState={key:k,dir:'desc'};
+    }else if(sortState.dir==='desc'){
+      sortState={key:null,dir:null};
+    }else{
+      sortState={key:k,dir:'asc'};
+    }
+    apply();
+  });
+});
+
+$('#tableWrap').addEventListener('scroll',e=>{
+  const el=e.currentTarget;
+  if(el.scrollTop+el.clientHeight>=el.scrollHeight-240){
+    renderNextChunk();
+  }
+});
 
 $('#clearStored').onclick=async()=>{
   if(!confirm('이 브라우저에 저장된 기본 데이터를 삭제하시겠습니까?'))return;
