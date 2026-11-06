@@ -46,7 +46,7 @@
     const families=new Set(matches.map(x=>x[1]||'미분류'));
     $p('catalogStats').textContent=`채널 ${activeChannels.length.toLocaleString('ko-KR')}개 · 제품군 ${families.size.toLocaleString('ko-KR')}개 · 제품 ${matches.length.toLocaleString('ko-KR')}개`;
     $p('catalogChannels').innerHTML=productQuery
-      ? `<div class="catalog-caption">검색한 품목을 주문할 수 있는 채널 · 채널을 클릭하면 해당 채널의 제품만 표시됩니다</div><div class="catalog-channel-list">${selectableChannels.map(([id,name])=>{
+      ? `<div class="catalog-caption">검색 품목 · 주문 가능 채널</div><div class="catalog-channel-list">${!channelQuery?`<button type="button" class="catalog-channel-pill catalog-channel-button catalog-all is-selected" data-catalog-channel="ALL" aria-pressed="true">전체 채널 <b>${selectableChannels.length}개</b></button>`:`<button type="button" class="catalog-channel-pill catalog-channel-button catalog-all" data-catalog-channel="ALL" aria-pressed="false">전체 채널 <b>${selectableChannels.length}개</b></button>`}${selectableChannels.map(([id,name])=>{
           const selected=channelQuery&&(channelQuery===norm(id)||channelQuery===norm(name));
           return `<button type="button" class="catalog-channel-pill catalog-channel-button${selected?' is-selected':''}" data-catalog-channel="${escapeHtml(id)}" aria-pressed="${selected?'true':'false'}" title="${escapeHtml(name)} 주문 가능 제품만 보기">${escapeHtml(id)} · ${escapeHtml(name)} <b>${channelCounts.get(id)}개</b></button>`;
         }).join('')||'<span class="catalog-empty">일치하는 채널이 없습니다.</span>'}</div>`
@@ -110,9 +110,10 @@
     const button=event.target.closest('[data-catalog-channel]');
     if(!button||!catalog)return;
     const id=button.dataset.catalogChannel;
+    const field=$p('catalogChannel');
+    if(id==='ALL'){field.value='';scheduleRender();return;}
     const channel=catalog.channels.find(([code])=>code===id);
     if(!channel)return;
-    const field=$p('catalogChannel');
     const current=norm(field.value);
     field.value=(current===norm(id)||current===norm(channel[1]))?'':id;
     scheduleRender();
