@@ -15,6 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Syntax check dashboard runtime
-        run: node --check app.js
+        run: |
+          node --check app.js
+          node --check channel-products.js
+          node --check experience.js
       - name: Verify embedded customer database
         run: node scripts/verify.mjs
