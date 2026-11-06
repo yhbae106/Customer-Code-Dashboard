@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>판매처 통합 조회</title>
-<link rel="stylesheet" href="style.css?v=20261104-filter6" />
+<link rel="stylesheet" href="style.css?v=20261106-catalog1" />
 </head>
 <body>
 <div class="shell">
@@ -47,6 +47,27 @@
       <input id="shipNameFilter" class="field-filter" type="search" inputmode="search" placeholder="실납처명 조회" aria-label="실납처명 조회" disabled />
       <button id="resetFilters" class="ghost" disabled>필터 초기화</button>
     </div>
+  </section>
+
+  <section class="panel catalog-panel" id="catalogPanel" aria-label="채널별 주문 가능 품목 조회">
+    <div class="panel-head catalog-head">
+      <div><strong>채널별 주문 가능 품목 조회</strong><span id="catalogStatus">품목 DB 준비 중</span></div>
+      <div class="view-note">첨부 엑셀 기준 · 채널 ↔ 제품군·제품명 양방향 조회</div>
+    </div>
+    <div class="catalog-controls">
+      <label class="catalog-control"><span>채널 · 채널명</span>
+        <input id="catalogChannel" type="search" list="catalogChannelOptions" autocomplete="off" placeholder="DW01 또는 DW_약국(온) 검색" disabled />
+        <datalist id="catalogChannelOptions"></datalist>
+      </label>
+      <label class="catalog-control"><span>제품군 · 제품명 · 자재코드</span>
+        <input id="catalogProduct" type="search" autocomplete="off" placeholder="펙수클루군, 펙수클루정, 자재코드 검색" disabled />
+      </label>
+      <button class="ghost catalog-reset" id="catalogReset" disabled>조회 초기화</button>
+    </div>
+    <div class="catalog-summary"><span id="catalogStats">품목 정보 준비 중</span><span>원본 기준 주문 가능 품목 · 실제 주문 가능 여부는 주문시점 확인</span></div>
+    <div id="catalogChannels"></div>
+    <div id="catalogResults" class="catalog-results"><p class="catalog-empty">품목 데이터를 준비하고 있습니다.</p></div>
+    <div class="catalog-more-wrap"><button id="catalogMore" class="ghost" hidden>더 보기</button></div>
   </section>
 
   <section class="panel shipto-panel" id="shiptoPanel" hidden>
@@ -112,5 +133,6 @@
 </div>
 
 <script src="app.js?v=20261104-master9"></script>
+<script src="channel-products.js?v=20261106-1" defer></script>
 </body>
 </html>
