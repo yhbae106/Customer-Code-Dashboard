@@ -229,3 +229,14 @@ button,select{touch-action:manipulation}
 .catalog-channel-button.catalog-all.is-selected{background:#15516f;color:#fff;border-style:solid}
 #ruleNote{display:inline-block;max-width:min(710px,72vw);vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:680px){#ruleNote{max-width:48vw}}
+
+/* The two query directions are clickable examples drawn from the embedded catalog. */
+.catalog-starter{display:grid;grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr);gap:9px;align-items:center;padding:7px 0 18px}
+.catalog-starter-item{border:1px solid #d8e6ef;border-radius:14px;background:linear-gradient(160deg,#f8fbff,#f1f8fc);min-height:101px;text-align:left;padding:16px 18px;color:#24506c;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0;transition:border-color .15s,transform .15s,box-shadow .15s}
+.catalog-starter-item:hover,.catalog-starter-item:focus-visible{border-color:#36a6a3;background:#f0faf9;transform:translateY(-1px);box-shadow:0 7px 17px rgba(26,92,112,.08)}
+.catalog-starter-kicker{font-size:9px;font-weight:850;letter-spacing:.14em;color:#398a94}
+.catalog-starter-item strong{font-size:14px;color:#1b5370;line-height:1.5;word-break:break-word}
+.catalog-starter-item strong span{font-size:14px;color:#1c9690}
+.catalog-starter-item small{font-size:11px;color:#7e92a3}
+.catalog-starter-swap{display:grid;place-items:center;font-size:23px;color:#3e9eaa;font-weight:800}
+@media(max-width:680px){.catalog-starter{grid-template-columns:1fr;padding-bottom:14px;gap:6px}.catalog-starter-swap{font-size:18px}.catalog-starter-item{min-height:88px;padding:12px 13px}}
