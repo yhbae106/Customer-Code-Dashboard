@@ -220,3 +220,12 @@ button,select{touch-action:manipulation}
  .guide-grid{padding:11px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* Screen-reader-only labels leave the dense controls visually clean. */
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.kpi.kpi-clickable[aria-disabled="true"]{cursor:default;opacity:.65}
+.kpi.kpi-clickable[aria-disabled="true"]:hover{background:#fff;border-color:#dfe7ef;box-shadow:0 4px 12px rgba(27,58,91,.03)}
+.catalog-channel-button.catalog-all{border-style:dashed;background:#f4fafb;color:#256d73}
+.catalog-channel-button.catalog-all.is-selected{background:#15516f;color:#fff;border-style:solid}
+#ruleNote{display:inline-block;max-width:min(710px,72vw);vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:680px){#ruleNote{max-width:48vw}}
