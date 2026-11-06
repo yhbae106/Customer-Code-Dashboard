@@ -90,3 +90,10 @@ th.sortable.sorted .sort-mark{color:#2f6fed}
 .catalog-more-wrap .ghost[hidden]{display:none}
 @media(max-width:900px){.catalog-family-items{grid-template-columns:1fr}.catalog-head{align-items:flex-start}.catalog-head .view-note{display:none}}
 @media(max-width:600px){.catalog-controls{gap:10px}.catalog-control{flex-basis:100%}.catalog-reset{width:100%}.catalog-summary>span:last-child{font-size:11px}.catalog-channel-pill{font-size:10px}}
+
+/* Clickable order-channel chips in the bidirectional product lookup. */
+.catalog-channel-button{font:inherit;font-size:11px;line-height:1.4;color:#284c83;cursor:pointer;transition:background-color .15s,border-color .15s}
+.catalog-channel-button:hover{background:#e3efff;border-color:#80a7e8}
+.catalog-channel-button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.catalog-channel-button.is-selected,.catalog-channel-button.is-selected:hover{background:var(--navy);border-color:var(--navy);color:#fff}
+.catalog-channel-button.is-selected b{color:#fff}
