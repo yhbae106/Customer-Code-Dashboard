@@ -54,7 +54,21 @@
         ? `<div class="catalog-caption">선택된 채널</div><div class="catalog-channel-list">${activeChannels.map(([id,name])=>`<span class="catalog-channel-pill">${escapeHtml(id)} · ${escapeHtml(name)}</span>`).join('')}</div>`
         : '';
     if(!channelQuery&&!productQuery){
-      $p('catalogResults').innerHTML='<p class="catalog-empty">채널(채널명) 또는 제품군·제품명을 입력하면 주문 가능 품목과 채널이 조회됩니다.</p>';
+      const sampleChannel=catalog.channels.find(([id])=>id==='DW01')||catalog.channels[0];
+      const sampleGroup=catalog.products.find(([,group])=>group==='펙수클루군')?.[1]||catalog.products.find(([,group])=>group)?.[1]||'';
+      $p('catalogResults').innerHTML=`<div class="catalog-starter">
+        <button type="button" class="catalog-starter-item" data-sample-channel="${escapeHtml(sampleChannel?.[0]||'')}">
+          <span class="catalog-starter-kicker">CHANNEL</span>
+          <strong>${escapeHtml(sampleChannel?.[0]||'')} · ${escapeHtml(sampleChannel?.[1]||'')} <span>↗</span></strong>
+          <small>채널별 주문 가능 제품</small>
+        </button>
+        <span class="catalog-starter-swap" aria-hidden="true">⇄</span>
+        <button type="button" class="catalog-starter-item" data-sample-product="${escapeHtml(sampleGroup)}">
+          <span class="catalog-starter-kicker">PRODUCT GROUP</span>
+          <strong>${escapeHtml(sampleGroup)} <span>↗</span></strong>
+          <small>제품군별 주문 가능 채널</small>
+        </button>
+      </div>`;
       $p('catalogMore').hidden=true;
       return;
     }
@@ -106,6 +120,13 @@
   }
   // Event delegation survives re-rendering. Clicking the selected channel
   // again clears only the channel filter and preserves the product search.
+  $p('catalogResults').addEventListener('click',event=>{
+    const sample=event.target.closest('[data-sample-channel],[data-sample-product]');
+    if(!sample||!catalog)return;
+    if(sample.hasAttribute('data-sample-channel'))$p('catalogChannel').value=sample.dataset.sampleChannel;
+    else $p('catalogProduct').value=sample.dataset.sampleProduct;
+    scheduleRender();
+  });
   $p('catalogChannels').addEventListener('click',event=>{
     const button=event.target.closest('[data-catalog-channel]');
     if(!button||!catalog)return;
