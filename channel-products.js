@@ -4,7 +4,7 @@
   const escapeHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
   const norm=v=>String(v??'').trim().toLocaleLowerCase('ko-KR');
   const collate=new Intl.Collator('ko-KR',{numeric:true,sensitivity:'base'});
-  let catalog=null, limit=60, lastMatches=[], lastChannels=[], lastMask=0;
+  let catalog=null, limit=60;
   const status=$p('catalogStatus');
   const bitCount=mask=>{let n=0;while(mask){n+=mask&1;mask>>>=1;}return n;};
   function channelList(mask){
@@ -95,6 +95,13 @@
     $p('catalogChannel').value='';
     $p('catalogProduct').value='';
     scheduleRender();
+  });
+  const accountChannel=document.getElementById('channelFilter');
+  if(accountChannel)accountChannel.addEventListener('change',()=>{
+    if(accountChannel.value){
+      $p('catalogChannel').value=accountChannel.value;
+      scheduleRender();
+    }
   });
   $p('catalogMore').addEventListener('click',()=>{limit+=60;render();});
   load();
