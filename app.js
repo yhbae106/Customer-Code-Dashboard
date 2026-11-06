@@ -289,7 +289,7 @@ function relationSummaryForBusiness(r){
     shipMap.get(k).rows.push(x);
   }
   const ships=[...shipMap.values()];
-  if(!matched.length)return `<div class="relation-count">실납처 ${fmt(ships.length)}개</div><div class="code">업체 클릭 시 채널별 담당자 확인</div>`;
+  if(!matched.length)return `<div class="relation-count">실납처 ${fmt(ships.length)}개</div><div class="code">채널별 담당 관계 ›</div>`;
   const g=ships[0],ass=assignmentGroups(g.rows);
   const brief=ass.slice(0,3).map(a=>`${esc(a.channel)} · ${esc(a.staff||'-')}`).join('<br>');
   return `<div class="name">${esc(g.name)}</div><div class="code">${brief}${ass.length>3?`<br>외 ${ass.length-3}개 관계`:''}</div>`;
