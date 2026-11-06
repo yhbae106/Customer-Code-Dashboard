@@ -112,18 +112,26 @@
     });
   });
 
-  function decorateRows(){
-    if(!rows)return;
-    rows.querySelectorAll('tr[data-i]:not([data-accessible])').forEach(row=>{
-      row.dataset.accessible='1';
-      row.setAttribute('role','button');
-      row.tabIndex=0;
-      const name=row.querySelector('td .name')?.textContent?.trim()||'거래처';
-      row.setAttribute('aria-label',name+' 상세 정보');
-    });
+  function decorateRow(row){
+    if(!row.matches?.('tr[data-i]')||row.dataset.accessible)return;
+    row.dataset.accessible='1';
+    row.setAttribute('role','button');
+    row.tabIndex=0;
+    const name=row.querySelector('td .name')?.textContent?.trim()||'거래처';
+    row.setAttribute('aria-label',name+' 상세 정보');
   }
-  decorateRows();
-  if(rows)new MutationObserver(decorateRows).observe(rows,{childList:true});
+  if(rows){
+    rows.querySelectorAll('tr[data-i]').forEach(decorateRow);
+    new MutationObserver(mutations=>{
+      for(const mutation of mutations){
+        for(const node of mutation.addedNodes){
+          if(node.nodeType!==1)continue;
+          decorateRow(node);
+          node.querySelectorAll?.('tr[data-i]').forEach(decorateRow);
+        }
+      }
+    }).observe(rows,{childList:true});
+  }
 
   results?.addEventListener('keydown',event=>{
     const row=event.target.closest('tr[data-i]');
