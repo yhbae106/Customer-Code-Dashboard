@@ -24,18 +24,32 @@
       if(exact.length)matchesChannel=exact;
     }
     const mask=channelQuery?matchesChannel.reduce((acc,c)=>acc|(1<<c[2]),0):(2**catalog.channels.length-1);
-    const matches=catalog.products.filter(([sku,group,name,flags])=>
-      (flags & mask)!==0&&(!productQuery||[sku,group,name].some(v=>norm(v).includes(productQuery)))
+    // Keep the product query independently of the selected channel so the
+    // channel chips stay visible and can switch the product list in one click.
+    const productMatches=catalog.products.filter(([sku,group,name])=>
+      !productQuery||[sku,group,name].some(v=>norm(v).includes(productQuery))
     );
+    const matches=productMatches.filter(([, , , flags])=>(flags & mask)!==0);
     const channelCounts=new Map();
-    for(const [sku,group,name,flags] of matches){
-      for(const [id,ch] of channelList(flags & mask))channelCounts.set(id,(channelCounts.get(id)||0)+1);
+    const countSource=productQuery?productMatches:matches;
+    for(const [, , , flags] of countSource){
+      for(const [id] of channelList(productQuery?flags:(flags & mask))){
+        channelCounts.set(id,(channelCounts.get(id)||0)+1);
+      }
     }
-    const activeChannels=matchesChannel.filter(c=>channelCounts.has(c[0]));
+    const activeChannels=matchesChannel.filter(([, , index])=>
+      matches.some(([, , , flags])=>(flags & (1<<index))!==0)
+    );
+    const selectableChannels=productQuery
+      ? catalog.channels.filter(([id])=>channelCounts.has(id))
+      : activeChannels;
     const families=new Set(matches.map(x=>x[1]||'미분류'));
     $p('catalogStats').textContent=`채널 ${activeChannels.length.toLocaleString('ko-KR')}개 · 제품군 ${families.size.toLocaleString('ko-KR')}개 · 제품 ${matches.length.toLocaleString('ko-KR')}개`;
     $p('catalogChannels').innerHTML=productQuery
-      ? `<div class="catalog-caption">검색한 품목을 주문할 수 있는 채널</div><div class="catalog-channel-list">${activeChannels.map(([id,name])=>`<span class="catalog-channel-pill">${escapeHtml(id)} · ${escapeHtml(name)} <b>${channelCounts.get(id)}개</b></span>`).join('')||'<span class="catalog-empty">일치하는 채널이 없습니다.</span>'}</div>`
+      ? `<div class="catalog-caption">검색한 품목을 주문할 수 있는 채널 · 채널을 클릭하면 해당 채널의 제품만 표시됩니다</div><div class="catalog-channel-list">${selectableChannels.map(([id,name])=>{
+          const selected=channelQuery&&(channelQuery===norm(id)||channelQuery===norm(name));
+          return `<button type="button" class="catalog-channel-pill catalog-channel-button${selected?' is-selected':''}" data-catalog-channel="${escapeHtml(id)}" aria-pressed="${selected?'true':'false'}" title="${escapeHtml(name)} 주문 가능 제품만 보기">${escapeHtml(id)} · ${escapeHtml(name)} <b>${channelCounts.get(id)}개</b></button>`;
+        }).join('')||'<span class="catalog-empty">일치하는 채널이 없습니다.</span>'}</div>`
       : channelQuery&&activeChannels.length>0
         ? `<div class="catalog-caption">선택된 채널</div><div class="catalog-channel-list">${activeChannels.map(([id,name])=>`<span class="catalog-channel-pill">${escapeHtml(id)} · ${escapeHtml(name)}</span>`).join('')}</div>`
         : '';
@@ -90,6 +104,19 @@
       $p('catalogResults').innerHTML='<p class="catalog-empty">품목 DB 연결 실패</p>';
     }
   }
+  // Event delegation survives re-rendering. Clicking the selected channel
+  // again clears only the channel filter and preserves the product search.
+  $p('catalogChannels').addEventListener('click',event=>{
+    const button=event.target.closest('[data-catalog-channel]');
+    if(!button||!catalog)return;
+    const id=button.dataset.catalogChannel;
+    const channel=catalog.channels.find(([code])=>code===id);
+    if(!channel)return;
+    const field=$p('catalogChannel');
+    const current=norm(field.value);
+    field.value=(current===norm(id)||current===norm(channel[1]))?'':id;
+    scheduleRender();
+  });
   for(const id of ['catalogChannel','catalogProduct'])$p(id).addEventListener('input',scheduleRender);
   $p('catalogReset').addEventListener('click',()=>{
     $p('catalogChannel').value='';
