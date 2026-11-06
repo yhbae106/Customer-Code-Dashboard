@@ -3,8 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="theme-color" content="#173b67" />
+<meta name="color-scheme" content="light" />
 <title>판매처 통합 조회</title>
 <link rel="stylesheet" href="style.css?v=20261106-catalog2" />
+<link rel="stylesheet" href="experience.css?v=20261106-ux1" />
 </head>
 <body>
 <div class="shell">
@@ -16,6 +19,14 @@
     </div>
     <div class="status loading"><span class="dot"></span><span id="loadStatus">기본 DB 연결 중</span></div>
   </header>
+
+
+  <nav class="feature-nav" aria-label="주요 조회 기능">
+    <a class="feature-link is-active" href="#accountSearch" data-focus="q"><span class="feature-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span><span class="feature-copy"><b>거래처 통합조회</b><small>판매처 · 실납처 · 영업담당</small></span><span class="feature-arrow" aria-hidden="true">↗</span></a>
+    <a class="feature-link" href="#catalogPanel"><span class="feature-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m12 2 8 4.5v10L12 21l-8-4.5v-10L12 2Z"/><path d="M4 6.5 12 11l8-4.5M12 11v10"/></svg></span><span class="feature-copy"><b>주문 가능 품목</b><small>제품군 · 제품명 ↔ 채널</small></span><span class="feature-arrow" aria-hidden="true">↗</span></a>
+    <a class="feature-link" href="#accountSearch" data-focus="shipNameFilter"><span class="feature-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M17 6a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 4"/></svg></span><span class="feature-copy"><b>실납처 담당 관계</b><small>채널 · 사무소 · 담당자</small></span><span class="feature-arrow" aria-hidden="true">↗</span></a>
+    <a class="feature-link" href="#guidePanel"><span class="feature-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 16l9 5 9-5"/></svg></span><span class="feature-copy"><b>채널 분류표</b><small>간납 · 종합도매 · 온라인</small></span><span class="feature-arrow" aria-hidden="true">↗</span></a>
+  </nav>
 
   <section class="panel data-panel">
     <div>
@@ -29,45 +40,44 @@
     </div>
   </section>
 
-  <section class="hero-search">
-    <div class="search-wrap">
-      <span class="search-icon">⌕</span>
-      <input id="q" autocomplete="off" placeholder="사업자번호, 판매처명, 대표자, 영업담당, 전화번호, 팩스, 이메일, 주소 검색" disabled />
-      <button id="clearBtn" aria-label="검색 초기화" disabled>×</button>
-    </div>
-    <div class="quick-filters">
-      <select id="typeFilter" disabled><option value="">유형 전체</option></select>
-      <select id="modeFilter" disabled><option value="">온라인/오프라인 전체</option></select>
-      <select id="channelFilter" disabled><option value="">채널 전체</option></select>
-      <select id="officeFilter" disabled><option value="">사무소 전체</option></select>
-      <select id="staffFilter" disabled><option value="">영업담당 전체</option></select>
-      <input id="saleCodeFilter" class="field-filter" type="search" inputmode="search" placeholder="판매처 코드 조회" aria-label="판매처 코드 조회" disabled />
-      <input id="saleNameFilter" class="field-filter" type="search" inputmode="search" placeholder="판매처명 조회" aria-label="판매처명 조회" disabled />
-      <input id="shipCodeFilter" class="field-filter" type="search" inputmode="search" placeholder="실납처 코드 조회" aria-label="실납처 코드 조회" disabled />
-      <input id="shipNameFilter" class="field-filter" type="search" inputmode="search" placeholder="실납처명 조회" aria-label="실납처명 조회" disabled />
-      <button id="resetFilters" class="ghost" disabled>필터 초기화</button>
-    </div>
-  </section>
 
-  <section class="panel catalog-panel" id="catalogPanel" aria-label="채널별 주문 가능 품목 조회">
-    <div class="panel-head catalog-head">
-      <div><strong>채널별 주문 가능 품목 조회</strong><span id="catalogStatus">품목 DB 준비 중</span></div>
-      <div class="view-note">첨부 엑셀 기준 · 채널 ↔ 제품군·제품명 양방향 조회</div>
+  <section class="hero-search" id="accountSearch" aria-labelledby="accountSearchTitle">
+    <div class="module-heading">
+      <div class="module-heading-main">
+        <span class="module-number" aria-hidden="true">01</span>
+        <div><div class="module-overline">ACCOUNT SEARCH</div><h2 id="accountSearchTitle">거래처 통합조회</h2><p>판매처 · 실납처 · 연락처 · 영업담당 통합 검색</p></div>
+      </div>
+      <span class="module-tally">조회 조건 · 실시간 반영</span>
     </div>
-    <div class="catalog-controls">
-      <label class="catalog-control"><span>채널 · 채널명</span>
-        <input id="catalogChannel" type="search" list="catalogChannelOptions" autocomplete="off" placeholder="DW01 또는 DW_약국(온) 검색" disabled />
-        <datalist id="catalogChannelOptions"></datalist>
-      </label>
-      <label class="catalog-control"><span>제품군 · 제품명 · 자재코드</span>
-        <input id="catalogProduct" type="search" autocomplete="off" placeholder="펙수클루군, 펙수클루정, 자재코드 검색" disabled />
-      </label>
-      <button class="ghost catalog-reset" id="catalogReset" disabled>조회 초기화</button>
+    <div class="search-body">
+      <div class="search-wrap">
+        <span class="search-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span>
+        <label for="q" class="sr-only">사업자번호 및 판매처 통합 검색</label>
+        <input id="q" type="search" autocomplete="off" placeholder="사업자번호, 판매처명, 담당자, 전화번호, 주소 통합 검색" disabled />
+        <button id="clearBtn" type="button" aria-label="검색어 지우기" title="검색어 지우기" disabled>×</button>
+      </div>
+      <div class="filter-set">
+        <div class="filter-heading">유형 · 영업방식 · 채널 · 담당</div>
+        <div class="quick-filters select-filters">
+          <label class="sr-only" for="typeFilter">유형</label><select id="typeFilter" disabled><option value="">유형 전체</option></select>
+          <label class="sr-only" for="modeFilter">영업방식</label><select id="modeFilter" disabled><option value="">온라인/오프라인 전체</option></select>
+          <label class="sr-only" for="channelFilter">채널</label><select id="channelFilter" disabled><option value="">채널 전체</option></select>
+          <label class="sr-only" for="officeFilter">사무소</label><select id="officeFilter" disabled><option value="">사무소 전체</option></select>
+          <label class="sr-only" for="staffFilter">영업담당</label><select id="staffFilter" disabled><option value="">영업담당 전체</option></select>
+        </div>
+      </div>
+      <div class="filter-set">
+        <div class="filter-heading">코드 · 명칭 세부조회</div>
+        <div class="quick-filters field-filters">
+          <input id="saleCodeFilter" class="field-filter" type="search" inputmode="search" placeholder="판매처 코드" aria-label="판매처 코드 조회" disabled />
+          <input id="saleNameFilter" class="field-filter" type="search" inputmode="search" placeholder="판매처명" aria-label="판매처명 조회" disabled />
+          <input id="shipCodeFilter" class="field-filter" type="search" inputmode="search" placeholder="실납처 코드" aria-label="실납처 코드 조회" disabled />
+          <input id="shipNameFilter" class="field-filter" type="search" inputmode="search" placeholder="실납처명" aria-label="실납처명 조회" disabled />
+          <button id="resetFilters" type="button" class="ghost" disabled>↺ 필터 전체 해제</button>
+        </div>
+      </div>
+      <div id="activeFilters" class="active-filter-bar" hidden aria-label="현재 적용 조건"></div>
     </div>
-    <div class="catalog-summary"><span id="catalogStats">품목 정보 준비 중</span><span>원본 기준 주문 가능 품목 · 실제 주문 가능 여부는 주문시점 확인</span></div>
-    <div id="catalogChannels"></div>
-    <div id="catalogResults" class="catalog-results"><p class="catalog-empty">품목 데이터를 준비하고 있습니다.</p></div>
-    <div class="catalog-more-wrap"><button id="catalogMore" class="ghost" hidden>더 보기</button></div>
   </section>
 
   <section class="panel shipto-panel" id="shiptoPanel" hidden>
@@ -78,6 +88,7 @@
     <div id="shiptoMatches" class="shipto-matches"></div>
   </section>
 
+  <div class="overview-heading"><h2>거래처 현황 <small>현재 조회 조건 기준</small></h2></div>
   <section class="kpis" id="kpis">
     <div class="kpi accent"><div class="label">전체 레코드</div><div class="value">205,507</div><div class="hint">원본 행 기준</div></div>
     <div class="kpi"><div class="label">판매처 코드</div><div class="value">-</div><div class="hint">고유 판매처</div></div>
@@ -87,24 +98,24 @@
     <div class="kpi"><div class="label">온라인</div><div class="value">-</div><div class="hint">고유 사업자 기준</div></div>
   </section>
 
-  <section class="workspace">
+  <section class="workspace" id="accountResults" aria-label="거래처 조회 결과와 상세 정보">
     <div class="panel results-panel">
-      <div class="panel-head">
-        <div><strong>조회 결과</strong><span id="resultCount">로딩 중</span></div>
-        <div class="view-note">전체 결과 스크롤 조회 · 헤더 클릭으로 정렬</div>
+      <div class="panel-head results-head">
+        <div class="results-header-main"><strong>거래처 조회 결과</strong><span class="results-count" id="resultCount">로딩 중</span></div>
+        <div class="result-key"><span class="result-key-dot"></span><span>선택 거래처</span><span class="result-key-arrow" aria-hidden="true">›</span></div>
       </div>
       <div class="table-wrap" id="tableWrap">
         <table>
           <thead>
             <tr>
-              <th class="sortable" data-sort="판매처명">판매처 <span class="sort-mark">↕</span></th>
-              <th class="sortable" data-sort="채널">채널 <span class="sort-mark">↕</span></th>
-              <th class="sortable" data-sort="유형">유형 <span class="sort-mark">↕</span></th>
-              <th class="sortable" data-sort="영업방식">영업방식 <span class="sort-mark">↕</span></th>
-              <th class="sortable" data-sort="사원명">영업담당 <span class="sort-mark">↕</span></th>
+              <th class="sortable" data-sort="판매처명" title="정렬">판매처 <span class="sort-mark">↕</span></th>
+              <th class="sortable" data-sort="채널" title="정렬">채널 <span class="sort-mark">↕</span></th>
+              <th class="sortable" data-sort="유형" title="정렬">유형 <span class="sort-mark">↕</span></th>
+              <th class="sortable" data-sort="영업방식" title="정렬">영업방식 <span class="sort-mark">↕</span></th>
+              <th class="sortable" data-sort="사원명" title="정렬">영업담당 <span class="sort-mark">↕</span></th>
               <th>실납처/담당</th>
-              <th class="sortable" data-sort="전화번호">연락처 <span class="sort-mark">↕</span></th>
-              <th class="sortable" data-sort="통합주소">주소 <span class="sort-mark">↕</span></th>
+              <th class="sortable" data-sort="전화번호" title="정렬">연락처 <span class="sort-mark">↕</span></th>
+              <th class="sortable" data-sort="통합주소" title="정렬">주소 <span class="sort-mark">↕</span></th>
             </tr>
           </thead>
           <tbody id="rows"><tr><td colspan="8" class="loading-cell">기본 DB를 불러오고 있습니다.</td></tr></tbody>
@@ -112,21 +123,47 @@
       </div>
     </div>
 
-    <aside class="panel detail-panel" id="detailPanel">
+    <aside class="panel detail-panel" id="detailPanel" aria-label="거래처 상세 정보">
       <div class="empty-detail">
-        <div class="empty-icon">◎</div>
-        <strong>거래처를 선택하세요</strong>
-        <p>조회 결과의 행을 클릭하면 해당 사업자의 판매처·채널·담당자·주소·회전일·CSO/위탁재고 정보를 확인할 수 있습니다.</p>
+        <div class="empty-icon"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1a6 6 0 0 1 12 0v1M17 6a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 4"/></svg></div>
+        <strong>거래처 상세 정보</strong>
+        <span class="empty-tagline">판매처 · 실납처 · 담당 관계</span>
+        <div class="empty-badges"><span>채널별 담당자</span><span>연락처</span><span>주소</span><span>관리 정보</span></div>
       </div>
     </aside>
   </section>
 
-  <section class="panel guide-panel">
-    <div class="panel-head">
-      <div><strong>채널 조견표</strong><span>분류 기준</span></div>
-      <div class="view-note" id="ruleNote">조견표 기준으로 자동 분류</div>
+  <section class="panel catalog-panel" id="catalogPanel" aria-label="채널별 주문 가능 품목 조회">
+    <div class="panel-head catalog-head">
+      <div class="catalog-title-cluster"><span class="module-number catalog-number" aria-hidden="true">02</span><div><div class="module-overline">ORDER MATRIX</div><strong>주문 가능 품목 · 채널</strong><div class="view-note">제품 ↔ 채널 양방향 조회</div></div></div>
+      <span id="catalogStatus" class="catalog-status">품목 DB 준비 중</span>
     </div>
-    <div id="guide" class="guide-grid"></div>
+    <div class="catalog-controls">
+      <label class="catalog-control"><span>채널 · 채널명</span>
+        <input id="catalogChannel" type="search" list="catalogChannelOptions" autocomplete="off" placeholder="예: DW01 · DW_약국(온)" disabled />
+        <datalist id="catalogChannelOptions"></datalist>
+      </label>
+      <span class="catalog-bridge" aria-hidden="true">⇄</span>
+      <label class="catalog-control"><span>제품군 · 제품명 · 자재코드</span>
+        <input id="catalogProduct" type="search" autocomplete="off" placeholder="예: 펙수클루 · 자재코드" disabled />
+      </label>
+      <button class="ghost catalog-reset" id="catalogReset" disabled>조회 초기화</button>
+    </div>
+    <div class="catalog-summary"><span id="catalogStats" role="status" aria-live="polite">품목 정보 준비 중</span><span>원본 기준 주문 가능 품목 · 실제 주문 가능 여부는 주문시점 확인</span></div>
+    <div id="catalogChannels"></div>
+    <div id="catalogResults" class="catalog-results"><p class="catalog-empty">품목 데이터를 준비하고 있습니다.</p></div>
+    <div class="catalog-more-wrap"><button id="catalogMore" class="ghost" hidden>더 보기</button></div>
+  </section>
+
+
+  <section class="panel guide-panel" id="guidePanel">
+    <details class="guide-disclosure" id="guideDisclosure">
+      <summary class="panel-head">
+        <div><strong>채널 분류 조견표</strong><span id="ruleNote">분류 기준</span></div>
+        <span class="guide-expand-icon" aria-hidden="true">⌄</span>
+      </summary>
+      <div id="guide" class="guide-grid"></div>
+    </details>
   </section>
 
   <footer>데이터 기준 <span id="sourceName">261104 코드.xlsx</span> · 기본 DB 자동 연결</footer>
@@ -134,5 +171,6 @@
 
 <script src="app.js?v=20261104-master9"></script>
 <script src="channel-products.js?v=20261106-2" defer></script>
+<script src="experience.js?v=20261106-ux1" defer></script>
 </body>
 </html>
